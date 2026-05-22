@@ -64,11 +64,39 @@
         padding: 10px;
         z-index: 10;
       }
+
+      #proxy-container {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1000;
+        background: white;
+        overflow: auto;
+      }
+
+      #proxy-container.show {
+        display: block;
+      }
+
+      .back-button {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 1001;
+        background-color: #333;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
     </style>
 </head>
 <body>
     <div id="background">
-        <!-- Generating stars -->
         <script>
           const numStars = 300;
           const background = document.getElementById('background');
@@ -91,13 +119,13 @@
     <div class="container-fluid">
         <ul class="m-3 nav">
           <li class="ms-auto nav-item">
-            <a class="nav-link text-light" aria-current="page" href="https://accounts.google.com/InteractiveLogin/signinchooser?continue=https%3A%2F%2Fmail.google.com%2Fmail%2F%26ogbl%2F&emr=1&ltmpl=default&ltmplcache=2&osid=1&passive=true&rm=false&scc=1&service=mail&ss=1&ifkv=AXo7B7XDu8lvoTv_tDx3cH3J3YpK53Au1S0gAjL20VOQ4WuGjrjUIxPFze20KIv9-2uaI-Q6lIl4-Q&theme=glif&flowName=GlifWebSignIn&flowEntry=ServiceLogin">Gmail</a>
+            <a class="nav-link text-light" href="#">Gmail</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link text-light" href="https://www.google.com/imghp?hl=en&ogbl">Images</a>
+            <a class="nav-link text-light" href="#">Images</a>
           </li>
           <li class="nav-item">
-            <a href="https://accounts.google.com/InteractiveLogin/signinchooser?continue=https%3A%2F%2Fmail.google.com%2Fmail%2F%26ogbl%2F&emr=1&ltmpl=default&ltmplcache=2&osid=1&passive=true&rm=false&scc=1&service=mail&ss=1&ifkv=AXo7B7XDu8lvoTv_tDx3cH3J3YpK53Au1S0gAjL20VOQ4WuGjrjUIxPFze20KIv9-2uaI-Q6lIl4-Q&theme=glif&flowName=GlifWebSignIn&flowEntry=ServiceLogin" class="btn btn-primary">Sign In</a>
+            <a href="#" class="btn btn-primary">Sign In</a>
           </li>
         </ul>
         <br><br><br><br>
@@ -107,17 +135,157 @@
         
         <div class="row justify-content-center">
           <div class="col-md-6">
-            <form action="https://www.google.com/search" class="mt-4 text-center" method="get">
-              <input autocomplete="off" autofocus class="form-control form-control-lg mb-4 mx-auto rounded-pill" name="q" placeholder="Search" type="search" style="background-color: rgba(255, 255, 255, 0.9); color: #000;">
-              <button class="btn btn-light mx-2">Google Search</button>
-              <button class="btn btn-light mx-2" name="btnI">I'm Feeling Lucky</button>
+            <form class="mt-4 text-center" id="searchForm" onsubmit="handleSearch(event)">
+              <input autocomplete="off" autofocus class="form-control form-control-lg mb-4 mx-auto rounded-pill" id="searchInput" placeholder="Search or enter URL" type="text" style="background-color: rgba(255, 255, 255, 0.9); color: #000;">
+              <button type="button" class="btn btn-light mx-2" onclick="handleProxySearch()">Proxy Search</button>
+              <button type="submit" class="btn btn-light mx-2">Google Search</button>
             </form>
           </div>
         </div>
     </div>
 
+    <div id="proxy-container">
+      <button class="back-button" onclick="closeProxy()">← Back</button>
+      <div id="proxy-content"></div>
+    </div>
+
     <div class="bottom-left">
       Tacogamerman on github
     </div>
+
+    <script>
+      const proxy = 'https://api.codetabs.com/v1/proxy?quest=';
+
+      function handleSearch(event) {
+        event.preventDefault();
+        const query = document.getElementById('searchInput').value;
+        window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+      }
+
+      function handleProxySearch() {
+        const url = document.getElementById('searchInput').value;
+        
+        if (!url) {
+          alert('URLを入力してください');
+          return;
+        }
+
+        // URLのフォーマットチェック
+        let finalUrl = url;
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          finalUrl = 'https://' + url;
+        }
+
+        loadProxyContent(finalUrl);
+      }
+
+      function loadProxyContent(url) {
+        const container = document.getElementById('proxy-container');
+        const content = document.getElementById('proxy-content');
+        
+        content.innerHTML = '<p style="text-align: center; margin-top: 50px;">読み込み中...</p>';
+        container.classList.add('show');
+
+        fetch(proxy + encodeURIComponent(url))
+          .then(response => response.text())
+          .then(html => {
+            // HTMLを解析
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // 相対URLを絶対URLに変換
+            fixUrls(doc, url);
+
+            // すべてのスクリプトをフィルタリング（セキュリティ対策）
+            const scripts = doc.querySelectorAll('script');
+            scripts.forEach(script => {
+              // 外部スクリプトを無効化
+              if (script.src) {
+                script.src = proxy + encodeURIComponent(script.src);
+              }
+            });
+
+            // リンクをプロキシ経由に変更
+            const links = doc.querySelectorAll('a');
+            links.forEach(link => {
+              if (link.href && !link.href.startsWith('javascript:')) {
+                const newUrl = new URL(link.href, url).href;
+                link.onclick = (e) => {
+                  e.preventDefault();
+                  loadProxyContent(newUrl);
+                };
+              }
+            });
+
+            // フォームをプロキシ経由に変更
+            const forms = doc.querySelectorAll('form');
+            forms.forEach(form => {
+              const originalAction = form.action;
+              form.onsubmit = (e) => {
+                e.preventDefault();
+                const formUrl = new URL(form.action || url, url).href;
+                loadProxyContent(formUrl);
+              };
+            });
+
+            // コンテンツを表示
+            content.innerHTML = doc.documentElement.innerHTML;
+
+            // 動的に読み込まれたスクリプトを実行
+            const newScripts = content.querySelectorAll('script');
+            newScripts.forEach(script => {
+              const newScript = document.createElement('script');
+              if (script.src) {
+                newScript.src = proxy + encodeURIComponent(script.src);
+              } else {
+                newScript.textContent = script.textContent;
+              }
+              content.appendChild(newScript);
+            });
+          })
+          .catch(error => {
+            content.innerHTML = `<p style="color: red; text-align: center; margin-top: 50px;">エラー: ${error.message}</p>`;
+          });
+      }
+
+      function fixUrls(doc, baseUrl) {
+        // img タグの src を修正
+        doc.querySelectorAll('img').forEach(img => {
+          if (img.src) {
+            const absoluteUrl = new URL(img.src, baseUrl).href;
+            img.src = proxy + encodeURIComponent(absoluteUrl);
+          }
+        });
+
+        // link タグの href を修正（スタイルシートなど）
+        doc.querySelectorAll('link[href]').forEach(link => {
+          if (link.href) {
+            const absoluteUrl = new URL(link.href, baseUrl).href;
+            link.href = proxy + encodeURIComponent(absoluteUrl);
+          }
+        });
+
+        // iframe の src を修正
+        doc.querySelectorAll('iframe').forEach(iframe => {
+          if (iframe.src) {
+            const absoluteUrl = new URL(iframe.src, baseUrl).href;
+            iframe.src = proxy + encodeURIComponent(absoluteUrl);
+          }
+        });
+
+        // style タグ内の url() を修正
+        doc.querySelectorAll('style').forEach(style => {
+          style.textContent = style.textContent.replace(/url\(['"]?(?!data:)([^'")]+)['"]?\)/g, (match, urlPath) => {
+            const absoluteUrl = new URL(urlPath, baseUrl).href;
+            return `url('${proxy + encodeURIComponent(absoluteUrl)}')`;
+          });
+        });
+      }
+
+      function closeProxy() {
+        document.getElementById('proxy-container').classList.remove('show');
+        document.getElementById('proxy-content').innerHTML = '';
+      }
+    </script>
 </body>
 </html>
