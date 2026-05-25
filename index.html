@@ -3,24 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Starry Browser Environment</title>
+    <title>Starry Search & Browser</title>
     <style>
-      /* 全体スタイル */
       body {
         margin: 0;
-        padding: 0;
         overflow: hidden;
         font-family: Arial, sans-serif;
         background-color: #000;
-        height: 100vh;
-        width: 100vw;
       }
     
-      /* 星空背景 */
       #background {
         position: absolute;
-        top: 0;
-        left: 0;
         width: 100vw;
         height: 100vh;
         overflow: hidden;
@@ -46,49 +39,94 @@
         50% { transform: translate(50px, -50px); }
       }
 
-      /* 画像コンテナ用（将来拡張用スタイル） */
-      .image-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
+      /* 【UIそのまま】元の検索画面のレイアウト */
+      .main-container {
         position: relative;
-        z-index: 5;
-      }
-    
-      .image {
-        width: 250px;
-        height: 250px;
-        border: 2px solid #daf3f1;
-        margin: 40px;
-        padding: 10px;
-        box-sizing: border-box;
-        transition: all 0.3s ease;
-      }
-    
-      .image:hover {
-        transform: scale(1.1);
-        border-color: #9900ff;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        flex-direction: column;
+        transition: all 0.5s ease;
       }
 
-      /* 内蔵Webブラウザ表示領域（星空に浮かぶウィンドウ） */
-      #browser-container {
-        display: none; /* 最初は非表示 */
-        position: absolute;
-        top: 15vh;
-        left: 5vw;
-        width: 90vw;
-        height: 70vh;
-        background: #fff;
-        border: 2px solid #39ffd7;
-        border-radius: 8px;
-        box-shadow: 0 0 30px rgba(57, 255, 215, 0.4);
+      .container {
+        margin-bottom: 15px;
         z-index: 100;
-        overflow: hidden;
+      }
+
+      .container img {
+        max-width: 200px;
+        height: auto;
+      }
+
+      .search-box {
+        text-align: center;
+        z-index: 100;
+        width: 100%;
+        max-width: 600px;
+      }
+
+      .search-box input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 15px 20px;
+        font-size: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 25px;
+        background-color: rgba(255, 255, 255, 0.95);
+        color: #000;
+        outline: none;
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+      }
+
+      .search-box input:focus {
+        border-color: #39ffd7;
+        box-shadow: 0 0 15px rgba(57, 255, 215, 0.3);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+
+      .button-group button {
+        font-family: Arial;
+        font-size: 14px;
+        color: #fff;
+        background-color: rgba(51, 51, 51, 0.9);
+        padding: 10px 25px;
+        border: 1px solid rgba(57, 255, 215, 0.3);
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .button-group button:hover {
+        background-color: rgba(51, 51, 51, 1);
+        border-color: #39ffd7;
+        box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
+      }
+
+      /* 【追加】JavaScriptで切り替える全画面ブラウザ表示領域 */
+      #browser-view {
+        display: none; /* 初期状態は非表示 */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 5000;
+        background: #fff;
+        flex-direction: column;
       }
 
       .browser-toolbar {
         background: #222;
-        padding: 8px 12px;
+        padding: 10px;
         display: flex;
         align-items: center;
         gap: 15px;
@@ -99,55 +137,89 @@
         background: #ff4a4a;
         color: white;
         border: none;
-        padding: 5px 15px;
+        padding: 6px 16px;
         border-radius: 4px;
         cursor: pointer;
         font-weight: bold;
+        font-size: 14px;
       }
-
-      .browser-close-btn:hover { background: #ff2222; }
 
       .browser-url-display {
         flex-grow: 1;
         background: #333;
         color: #39ffd7;
-        padding: 5px 10px;
+        padding: 6px 12px;
         border-radius: 4px;
         font-size: 13px;
         font-family: monospace;
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
       }
 
       #previewFrame {
-        width: 100%;
-        height: calc(100% - 41px);
+        width: 100vw;
+        height: calc(100vh - 47px);
         border: none;
         background: #fff;
       }
 
-      /* フッタークレジット */
+      /* フッター */
       .bottom-left {
         position: fixed;
         bottom: 0;
         left: 0;
         font-family: Arial, sans-serif;
         font-size: 16px;
-        color: rgba(255, 255, 255, 0.2); 
+        color: rgba(255, 255, 255, 0.2);
         padding: 10px;
-        z-index: 10;
+        z-index: 20;
         pointer-events: none;
       }
     </style>
 </head>
 <body>
 
-    <div id="background"></div>
+    <div id="background">
+        <script>
+          const numStars = 300;
+          const background = document.getElementById('background');
+          for (let i = 0; i < numStars; i++) {
+            const star = document.createElement('div');
+            star.classList.add('star');
+            star.style.width = `${Math.random() * 3}px`;
+            star.style.height = star.style.width;
+            star.style.left = `${Math.random() * 100}vw`;
+            star.style.top = `${Math.random() * 100}vh`;
+            star.style.animationDelay = `${Math.random() * 2}s`;
+            star.style.animationDuration = `${2 + Math.random() * 1}s`;
+            background.appendChild(star);
+          }
+        </script>
+    </div>
 
-    <div id="browser-container" id="browserContainer">
+    <div class="main-container" id="mainContainer">
+      <div class="container">
+        <img src="https://web.archive.org/web/19990504112211im_/http://www.google.com/google.jpg" alt="Google">
+      </div>
+      <div class="search-box">
+        <input 
+          autocomplete="off" 
+          autofocus 
+          id="searchInput" 
+          placeholder="検索キーワードを入力..." 
+          type="text"
+          onkeypress="if(event.key === 'Enter') triggerByeBlocker()"
+        >
+        <div class="button-group">
+          <button onclick="triggerByeBlocker()">Google 検索</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="browser-view">
       <div class="browser-toolbar">
-        <button class="browser-close-btn" onclick="closeBrowser()">× 閉じる</button>
+        <button class="browser-close-btn" onclick="switchPageToSearch()">× 閉じる</button>
         <div class="browser-url-display" id="browserUrlDisplay">URL: none</div>
       </div>
       <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
@@ -156,26 +228,78 @@
     <div class="bottom-left">Tacogamerman on github</div>
 
     <script>
-      const numStars = 300;
-      const background = document.getElementById('background');
+      // 検索窓やボタンから呼び出される「Url?」プロンプト起動関数
+      function triggerByeBlocker() {
+        var link = prompt("Url?");
+        if (!link) return;
 
-      for (let i = 0; i < numStars; i++) {
-        const star = document.createElement('div');
-        star.classList.add('star');
-        star.style.width = `${Math.random() * 3}px`;
-        star.style.height = star.style.width;
-        star.style.left = `${Math.random() * 100}vw`;
-        star.style.top = `${Math.random() * 100}vh`;
-        star.style.animationDelay = `${Math.random() * 2}s`;
-        star.style.animationDuration = `${2 + Math.random() * 1}s`;
+        // URLプロキシ取得 & ページ切り替えを実行
+        launchInternalBrowser(link);
+      }
 
-        background.appendChild(star);
+      // 【JavaScriptページ切り替え関数】ブラウザ画面へ切り替え
+      function launchInternalBrowser(link) {
+        // 自動補完
+        if (!link.startsWith('http://') && !link.startsWith('https://')) {
+          link = 'https://' + link;
+        }
+
+        var proxy = 'https://api.codetabs.com/v1/proxy?quest=';
+        var mainContainer = document.getElementById('mainContainer');
+        var browserView = document.getElementById('browser-view');
+        var previewFrame = document.getElementById('previewFrame');
+        var urlDisplay = document.getElementById('browserUrlDisplay');
+
+        // 1. プロキシ経由でHTMLを取得
+        fetch(proxy + encodeURIComponent(link))
+          .then((response) => {
+            if (!response.ok) throw new Error('ネットワークエラー');
+            return response.text();
+          })
+          .then((text) => {
+            // 2. JavaScriptで画面要素の表示/非表示をパッと切り替える
+            mainContainer.style.display = 'none';   // 検索UIを隠す
+            browserView.style.display = 'flex';     // ブラウザ画面を全画面で出す
+            urlDisplay.textContent = `接続先: ${link}`;
+
+            // 3. iframe内に取得したHTMLソースをそのまま展開して流し込む
+            var doc = previewFrame.contentWindow.document;
+            doc.open();
+            doc.write(text);
+            doc.close();
+
+            // 4. さっきのコードにあった相対パス資産（画像やリンク等）の書き換えループ処理を適用
+            setTimeout(function() {
+              var all = doc.getElementsByTagName("*");
+              for (var i = 0, max = all.length; i < max; i++) {
+                if (all[i].src) {
+                  try {
+                    all[i].src = new URL(all[i].src, link).href;
+                    all[i].src = proxy + encodeURIComponent(all[i].src);
+                  } catch(e) { console.error(e); }
+                }
+              }
+            }, 400);
+          })
+          .catch(err => {
+            alert("HTMLの取得に失敗しました: " + err.message);
+          });
+      }
+
+      // 【JavaScriptページ切り替え関数】元の検索画面へ戻す
+      function switchPageToSearch() {
+        var mainContainer = document.getElementById('mainContainer');
+        var browserView = document.getElementById('browser-view');
+        var previewFrame = document.getElementById('previewFrame');
+
+        previewFrame.src = 'about:blank'; // 読み込みクリア
+        browserView.style.display = 'none';  // ブラウザ画面を隠す
+        mainContainer.style.display = 'flex'; // 元のUIを再表示
       }
     </script>
 
     <script>
       (function() {
-        // メニュー外枠
         var menu = document.createElement('div');
         var menuContent = document.createElement('div');
         var closeButton = document.createElement('span');
@@ -196,7 +320,6 @@
 
         menuContent.style.cssText = 'padding: 10px; position: relative;';
 
-        // 閉じるボタン（×）
         closeButton.style.cssText = `
           position: absolute;
           top: 5px;
@@ -210,7 +333,6 @@
           menu.remove();
         };
 
-        // 起動ボタン
         button.innerHTML = 'Launch ByeBlocker';
         button.style.cssText = `
           font-family: Arial;
@@ -223,72 +345,22 @@
           margin-top: 15px;
           width: 100%;
           cursor: pointer;
-          transition: background 0.2s;
         `;
-        button.onmouseover = function() { this.style.backgroundColor = '#444'; };
-        button.onmouseout = function() { this.style.backgroundColor = '#333'; };
-
-        // 🚀 ボタンがクリックされた時の処理（ここをご提示のロジックに差し替え・最適化）
-        button.onclick = function() {
-          var link = prompt("Url?");
-          if (!link) return;
-
-          // http等がない場合は自動補完
-          if (!link.startsWith('http://') && !link.startsWith('https://')) {
-            link = 'https://' + link;
-          }
-
-          var proxy = 'https://api.codetabs.com/v1/proxy?quest=';
-          var browserContainer = document.getElementById('browser-container');
-          var previewFrame = document.getElementById('previewFrame');
-          var urlDisplay = document.getElementById('browserUrlDisplay');
-
-          // 元のコードの非同期HTML取得処理
-          fetch(proxy + encodeURIComponent(link))
-            .then((response) => {
-              if (!response.ok) throw new Error('Network error');
-              return response.text();
-            })
-            .then((text) => {
-              // 1. 表示窓（ブラウザ）を出現させる
-              urlDisplay.textContent = `接続先: ${link}`;
-              browserContainer.style.display = 'block';
-
-              // 2. iframeの中に取得したHTMLテキストを直接流し込んで再現する
-              var doc = previewFrame.contentWindow.document;
-              doc.open();
-              doc.write(text);
-              doc.close();
-
-              // 3. 元のコードにある相対パス資産（画像やリンク）のURL書き換えロジックをiframe内で適用
-              setTimeout(function() {
-                var all = doc.getElementsByTagName("*");
-                for (var i = 0, max = all.length; i < max; i++) {
-                  if (all[i].src) {
-                    try {
-                      all[i].src = new URL(all[i].src, link).href;
-                      all[i].src = proxy + encodeURIComponent(all[i].src);
-                    } catch(e) { console.error(e); }
-                  }
-                }
-              }, 500);
-            })
-            .catch(err => {
-              alert("HTMLの取得に失敗しました: " + err.message);
-            });
-        };
+        
+        // メニューのボタンが押された時も同じプロンプト関数を呼ぶ
+        button.onclick = triggerByeBlocker;
 
         menuContent.appendChild(closeButton);
         menuContent.appendChild(button);
         menu.appendChild(menuContent);
         document.body.appendChild(menu);
 
-        // --- フローティングメニューのドラッグ処理 ---
+        // フローティングメニューのドラッグ処理
         var isDragging = false;
         var mouseOffset = { x: 0, y: 0 };
 
         menuContent.addEventListener('mousedown', function(e) {
-          if (e.target === button || e.target === closeButton) return; // ボタン操作時はドラッグしない
+          if (e.target === button || e.target === closeButton) return;
           isDragging = true;
           mouseOffset.x = e.pageX - menu.offsetLeft;
           mouseOffset.y = e.pageY - menu.offsetTop;
@@ -298,7 +370,7 @@
           if (isDragging) {
             menu.style.left = (e.pageX - mouseOffset.x) + 'px';
             menu.style.top = (e.pageY - mouseOffset.y) + 'px';
-            menu.style.right = 'auto'; // 右固定を解除
+            menu.style.right = 'auto';
           }
         });
 
@@ -306,16 +378,6 @@
           isDragging = false;
         });
       })();
-
-      // 内蔵Webブラウザを閉じる関数
-      function closeBrowser() {
-        var browserContainer = document.getElementById('browser-container');
-        var previewFrame = document.getElementById('previewFrame');
-        if (browserContainer && previewFrame) {
-          previewFrame.src = 'about:blank';
-          browserContainer.style.display = 'none';
-        }
-      }
     </script>
 </body>
 </html>
