@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -82,6 +81,11 @@
         display: block;
       }
 
+      #proxy-content {
+        width: 100%;
+        height: 100%;
+      }
+
       .back-button {
         position: fixed;
         top: 10px;
@@ -144,13 +148,20 @@
           </div>
         </div>
     </div>
+
+    <div id="proxy-container">
+      <button class="back-button" onclick="closeProxy()">← Back</button>
+      <div id="proxy-content"></div>
+    </div>
+
     <script>
       const proxy = 'https://api.codetabs.com/v1/proxy?quest=';
 
       function handleSearch(event) {
         event.preventDefault();
         const query = document.getElementById('searchInput').value;
-        window.location.href = `https://api.codetabs.com/v1/proxy?quest={encodeURIComponent(query)}`;
+        // 修正: テンプレートリテラルを正しく使用
+        window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
       }
 
       function handleProxySearch() {
@@ -161,7 +172,6 @@
           return;
         }
 
-        // URLのフォーマットチェック
         let finalUrl = url;
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
           finalUrl = 'https://' + url;
@@ -180,23 +190,18 @@
         fetch(proxy + encodeURIComponent(url))
           .then(response => response.text())
           .then(html => {
-            // HTMLを解析
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
 
-            // 相対URLを絶対URLに変換
             fixUrls(doc, url);
 
-            // すべてのスクリプトをフィルタリング（セキュリティ対策）
             const scripts = doc.querySelectorAll('script');
             scripts.forEach(script => {
-              // 外部スクリプトを無効化
               if (script.src) {
                 script.src = proxy + encodeURIComponent(script.src);
               }
             });
 
-            // リンクをプロキシ経由に変更
             const links = doc.querySelectorAll('a');
             links.forEach(link => {
               if (link.href && !link.href.startsWith('javascript:')) {
@@ -208,10 +213,8 @@
               }
             });
 
-            // フォームをプロキシ経由に変更
             const forms = doc.querySelectorAll('form');
             forms.forEach(form => {
-              const originalAction = form.action;
               form.onsubmit = (e) => {
                 e.preventDefault();
                 const formUrl = new URL(form.action || url, url).href;
@@ -219,10 +222,8 @@
               };
             });
 
-            // コンテンツを表示
             content.innerHTML = doc.documentElement.innerHTML;
 
-            // 動的に読み込まれたスクリプトを実行
             const newScripts = content.querySelectorAll('script');
             newScripts.forEach(script => {
               const newScript = document.createElement('script');
@@ -240,7 +241,6 @@
       }
 
       function fixUrls(doc, baseUrl) {
-        // img タグの src を修正
         doc.querySelectorAll('img').forEach(img => {
           if (img.src) {
             const absoluteUrl = new URL(img.src, baseUrl).href;
@@ -248,7 +248,6 @@
           }
         });
 
-        // link タグの href を修正（スタイルシートなど）
         doc.querySelectorAll('link[href]').forEach(link => {
           if (link.href) {
             const absoluteUrl = new URL(link.href, baseUrl).href;
@@ -256,7 +255,6 @@
           }
         });
 
-        // iframe の src を修正
         doc.querySelectorAll('iframe').forEach(iframe => {
           if (iframe.src) {
             const absoluteUrl = new URL(iframe.src, baseUrl).href;
@@ -264,7 +262,6 @@
           }
         });
 
-        // style タグ内の url() を修正
         doc.querySelectorAll('style').forEach(style => {
           style.textContent = style.textContent.replace(/url\(['"]?(?!data:)([^'")]+)['"]?\)/g, (match, urlPath) => {
             const absoluteUrl = new URL(urlPath, baseUrl).href;
@@ -280,144 +277,3 @@
     </script>
 </body>
 </html>
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-      }
-    
-      #background {
-        position: absolute;
-        width: 100vw;
-        height: 100vh;
-        overflow: hidden;
-        background: radial-gradient(circle, rgb(0, 0, 0), rgb(1, 44, 42));
-      }
-    
-      .star {
-        position: absolute;
-        background: rgb(57, 255, 215);
-        border-radius: 50%;
-        transform: scale(0);
-        animation: sparkle 2s infinite, drift linear infinite;
-      }
-    
-      @keyframes sparkle {
-        0%, 100% {
-          opacity: 0;
-          transform: scale(0);
-        }
-        50% {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-    
-      @keyframes drift {
-        0%, 100% {
-          transform: translate(0, 0);
-        }
-        50% {
-          transform: translate(50px, -50px);
-        }
-      }
-    </style>
-    
-    <script>
-        javascript:(function() {
-  var menu = document.createElement('div');
-  var menuContent = document.createElement('div');
-  var closeButton = document.createElement('span');
-  var button = document.createElement('button');
-
-  menu.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-    background-color: rgba(0, 255, 255, 0.2); 
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    border-radius: 5px;
-    width: 200px;
-  `;
-
-  menuContent.style.padding = '10px';
-
-  closeButton.style.cssText = `
-    float: right;
-    cursor: pointer;
-    color: #333;
-  `;
-  closeButton.innerHTML = '&times;';
-  closeButton.onclick = function() {
-    menu.remove();
-  };
-
-  button.innerHTML = 'Launch ByeBlocker';
-  button.style.cssText = `
-    font-family: Arial;
-    font-size: 16px;
-    color: #fff;
-    background-color: #333;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    margin-top: 10px;
-    cursor: pointer;
-  `;
-  button.onclick = function() {
-    var link = prompt("Url?");
-    var proxy = 'https://api.codetabs.com/v1/proxy?quest=';
-    fetch(proxy + link)
-      .then((response) => response.text())
-      .then((text) => document.write(text));
-    var all = document.getElementsByTagName("*");
-    for (var i = 0, max = all.length; i < max; i++) {
-      if (all[i].src) {
-        all[i].src = new URL(all[i].src, link).href;
-        all[i].src = proxy + all[i].src;
-      }
-    }
-    window.onbeforeunload = function(e) {
-      e.preventDefault();
-      alert(e.toString());
-    };
-    function locationHashChanged(e) {
-      e.preventDefault();
-      alert(e);
-      window.location = new URL(e.oldURL, e.newURL).href;
-    }
-    window.onhashchange = locationHashChanged;
-  };
-
-  menuContent.appendChild(button);
-  menuContent.appendChild(closeButton);
-  menu.appendChild(menuContent);
-  document.body.appendChild(menu);
-
-  var isDragging = false;
-  var mouseOffset = { x: 0, y: 0 };
-
-  menuContent.addEventListener('mousedown', function(e) {
-    isDragging = true;
-    mouseOffset.x = e.pageX - menu.offsetLeft;
-    mouseOffset.y = e.pageY - menu.offsetTop;
-  });
-
-  document.addEventListener('mousemove', function(e) {
-    if (isDragging) {
-      menu.style.left = (e.pageX - mouseOffset.x) + 'px';
-      menu.style.top = (e.pageY - mouseOffset.y) + 'px';
-    }
-  });
-
-  document.addEventListener('mouseup', function() {
-    isDragging = false;
-  });
-})();
-    </script>
