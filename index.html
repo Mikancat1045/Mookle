@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCUnblocker</title>
+    <title>MCUnblocker (Optimized)</title>
     <style>
       body {
         margin: 0;
@@ -212,7 +212,7 @@
           onkeypress="if(event.key === 'Enter') executeDirectSearch()"
         >
         <div class="button-group">
-          <button onclick="executeDirectSearch()">Google 検索</button>
+          <button onclick="executeDirectSearch()">Web 検索</button>
         </div>
       </div>
     </div>
@@ -228,7 +228,12 @@
     <div class="bottom-left">Tacogamerman on github</div>
 
     <script>
-      const proxy = 'https://api.codetabs.com/v1/proxy?quest=';
+      // 複数の無料プロキシサーバー（1つ目がダメなら2つ目を試す仕組み用）
+      const proxyList = [
+        'https://api.codetabs.com/v1/proxy?quest=',
+        'https://corsproxy.io/?'
+      ];
+      let currentProxyIndex = 0;
 
       function executeDirectSearch() {
         var inputVal = document.getElementById('searchInput').value.trim();
@@ -238,14 +243,19 @@
         }
 
         var targetUrl = inputVal;
+        
+        // URLかどうかの判定ロジックを強化
         if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
+          // スペースが含まれる、またはドット(.)がない場合は検索クエリとみなす
           if (inputVal.includes(' ') || !inputVal.includes('.')) {
-            targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
+            // 🌟 ブロックされにくい DuckDuckGo の軽量(html)版に検索エンジンを変更
+            targetUrl = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(inputVal);
           } else {
             targetUrl = 'https://' + inputVal;
           }
         }
 
+        currentProxyIndex = 0; // プロキシのインデックスをリセットして開始
         launchInternalBrowser(targetUrl);
       }
 
@@ -255,15 +265,20 @@
         var previewFrame = document.getElementById('previewFrame');
         var urlDisplay = document.getElementById('browserUrlDisplay');
 
+        var activeProxy = proxyList[currentProxyIndex];
+
+        // 読み込み中を知らせるメッセージ
+        urlDisplay.textContent = `読込中... (${link})`;
+        mainContainer.style.display = 'none';   
+        browserView.style.display = 'flex';
+
         // プロキシ経由でHTMLを取得
-        fetch(proxy + encodeURIComponent(link))
+        fetch(activeProxy + encodeURIComponent(link))
           .then((response) => {
-            if (!response.ok) throw new Error('ネットワークエラー');
+            if (!response.ok) throw new Error('Proxy error');
             return response.text();
           })
           .then((text) => {
-            mainContainer.style.display = 'none';   
-            browserView.style.display = 'flex';     
             urlDisplay.textContent = `接続先: ${link}`;
 
             var doc = previewFrame.contentWindow.document;
@@ -271,27 +286,23 @@
             doc.write(text);
             doc.close();
 
-            // 🌟 【改善策②】リンク（aタグ）や画像（src）のURLプロキシ書き換えを大幅強化
+            // ページ内リンク・資産のプロキシ書き換え処理
             setTimeout(function() {
-              // 1. 画像やスクリプトなどの読み込み元をプロキシ化
               var allElements = doc.getElementsByTagName("*");
               for (var i = 0; i < allElements.length; i++) {
                 if (allElements[i].src) {
                   try {
                     var rawSrc = allElements[i].src;
-                    // すでにプロキシが入っていなければ書き換え
-                    if (!rawSrc.includes('api.codetabs.com')) {
+                    if (!rawSrc.includes('api.codetabs.com') && !rawSrc.includes('corsproxy.io')) {
                       var absoluteSrc = new URL(rawSrc, link).href;
-                      allElements[i].src = proxy + encodeURIComponent(absoluteSrc);
+                      allElements[i].src = activeProxy + encodeURIComponent(absoluteSrc);
                     }
                   } catch(e) {}
                 }
               }
 
-              // 2. ページ内のリンク（aタグ）をクリックした時、この検索エンジン内のブラウザで再ロードさせる
               var links = doc.getElementsByTagName("a");
               for (var j = 0; j < links.length; j++) {
-                // target="_blank"（別タブで開く設定）を解除して同じ画面で開かせる
                 if (links[j].target) {
                   links[j].target = "_self";
                 }
@@ -300,82 +311,21 @@
                   var href = this.getAttribute('href');
                   if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
 
-                  e.preventDefault(); // 通常のページ遷移をストップ
-                  
-                  // 絶対URLに変換
+                  e.preventDefault(); 
                   var absoluteUrl = new URL(href, link).href;
-                  
-                  // 再帰的にこの関数を呼び出して、内蔵ブラウザ内で次のページを読み込む！
                   launchInternalBrowser(absoluteUrl);
                 };
               }
-            }, 600); // ページの描画を少し待ってから実行
+            }, 600); 
           })
           .catch(err => {
-            console.error(err);
-          });
-      }
-
-      function switchPageToSearch() {
-        var mainContainer = document.getElementById('mainContainer');
-        var browserView = document.getElementById('browser-view');
-        var previewFrame = document.getElementById('previewFrame');
-
-        previewFrame.src = 'about:blank'; 
-        browserView.style.display = 'none';  
-        mainContainer.style.display = 'flex'; 
-        document.getElementById('searchInput').value = ''; 
-        document.getElementById('searchInput').focus();
-      }
-    </script>
-
-    <script>
-      (function() {
-        var menu = document.createElement('div');
-        var menuContent = document.createElement('div');
-        var closeButton = document.createElement('span');
-        var button = document.createElement('button');
-
-        menu.style.cssText = `
-          position: fixed; top: 20px; right: 20px; z-index: 9999;
-          background-color: rgba(0, 255, 255, 0.2); box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-          border-radius: 5px; width: 200px; backdrop-filter: blur(4px); border: 1px solid rgba(0, 255, 255, 0.3);
-        `;
-        menuContent.style.cssText = 'padding: 10px; position: relative;';
-        closeButton.style.cssText = 'position: absolute; top: 5px; right: 10px; cursor: pointer; color: #fff; font-size: 18px;';
-        closeButton.innerHTML = '&times;';
-        closeButton.onclick = function() { menu.remove(); };
-
-        button.innerHTML = 'Launch ByeBlocker';
-        button.style.cssText = 'font-family: Arial; font-size: 14px; color: #fff; background-color: #333; padding: 10px 15px; border: 1px solid #00ffff; border-radius: 5px; margin-top: 15px; width: 100%; cursor: pointer;';
-        
-        button.onclick = function() {
-          var inputEl = document.getElementById('searchInput');
-          inputEl.focus();
-        };
-
-        menuContent.appendChild(closeButton);
-        menuContent.appendChild(button);
-        menu.appendChild(menuContent);
-        document.body.appendChild(menu);
-
-        var isDragging = false;
-        var mouseOffset = { x: 0, y: 0 };
-        menuContent.addEventListener('mousedown', function(e) {
-          if (e.target === button || e.target === closeButton) return;
-          isDragging = true;
-          mouseOffset.x = e.pageX - menu.offsetLeft;
-          mouseOffset.y = e.pageY - menu.offsetTop;
-        });
-        document.addEventListener('mousemove', function(e) {
-          if (isDragging) {
-            menu.style.left = (e.pageX - mouseOffset.x) + 'px';
-            menu.style.top = (e.pageY - mouseOffset.y) + 'px';
-            menu.style.right = 'auto';
-          }
-        });
-        document.addEventListener('mouseup', function() { isDragging = false; });
-      })();
-    </script>
-</body>
-</html>
+            console.warn(`プロキシ ${currentProxyIndex} で失敗しました。`);
+            
+            // 🌟 予備のプロキシサーバーがあればそっちで再試行する
+            if (currentProxyIndex < proxyList.length - 1) {
+              currentProxyIndex++;
+              launchInternalBrowser(link);
+            } else {
+              alert("ページの取得に失敗しました。サイト側のセキュリティ制限か、無料プロキシサーバーの限界です。\n別のURLを試すか、しばらく時間を置いてみてください。");
+              switchPageToSearch();
+            }
