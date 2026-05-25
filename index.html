@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Starry Search Engine</title>
+    <title>Custom Starry Search Engine with Browser</title>
     <style>
       body {
         margin: 0;
@@ -67,6 +67,16 @@
         padding-bottom: 20px;
       }
 
+      .container {
+        margin-bottom: 15px;
+        z-index: 100;
+      }
+
+      .container img {
+        max-width: 200px;
+        height: auto;
+      }
+
       .bottom-left {
         position: fixed;
         bottom: 0;
@@ -128,19 +138,18 @@
         box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
       }
 
-      /* 検索結果用コンテナ（星空に馴染むデザイン） */
+      /* 検索結果用コンテナ（画面上部に結果リストをコンパクトに配置） */
       #results-container {
         position: relative;
         z-index: 10;
         width: 100%;
         max-width: 700px;
         margin: 0 auto;
-        padding: 20px;
+        padding: 0 20px;
         box-sizing: border-box;
         display: none;
-        max-height: calc(100vh - 200px);
+        max-height: 35vh;
         overflow-y: auto;
-        /* スクロールバーのカスタマイズ */
         scrollbar-width: thin;
         scrollbar-color: #39ffd7 rgba(0,0,0,0.5);
       }
@@ -156,8 +165,8 @@
       .search-result-item {
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(57, 255, 215, 0.1);
-        padding: 20px;
-        margin-bottom: 15px;
+        padding: 15px;
+        margin-bottom: 10px;
         border-radius: 8px;
         transition: all 0.3s ease;
       }
@@ -165,18 +174,17 @@
       .search-result-item:hover {
         background: rgba(255, 255, 255, 0.1);
         border-color: #39ffd7;
-        box-shadow: 0 0 10px rgba(57, 255, 215, 0.2);
-        transform: translateY(-2px);
       }
 
       .result-title {
-        font-size: 18px;
+        font-size: 16px;
         margin: 0 0 5px 0;
       }
 
       .result-title a {
         color: #39ffd7;
         text-decoration: none;
+        cursor: pointer;
       }
 
       .result-title a:hover {
@@ -184,32 +192,84 @@
       }
 
       .result-url {
-        font-size: 12px;
+        font-size: 11px;
         color: rgba(57, 255, 215, 0.6);
-        margin-bottom: 8px;
+        margin-bottom: 5px;
         word-break: break-all;
       }
 
       .result-snippet {
-        font-size: 14px;
+        font-size: 13px;
         color: #e0e0e0;
         line-height: 1.4;
       }
 
       .status-message {
         text-align: center;
-        padding: 30px;
+        padding: 20px;
         color: #39ffd7;
         font-size: 16px;
       }
 
-      @media (max-width: 768px) {
-        .search-box {
-          max-width: 90vw;
-        }
-        #results-container {
-          max-height: calc(100vh - 250px);
-        }
+      /* ページ内ウェブブラウザコンテナ */
+      #browser-container {
+        display: none;
+        position: relative;
+        z-index: 100;
+        width: 95vw;
+        height: 50vh;
+        margin: 15px auto;
+        background: #fff;
+        border: 2px solid #39ffd7;
+        border-radius: 8px;
+        box-shadow: 0 0 20px rgba(57, 255, 215, 0.4);
+        overflow: hidden;
+      }
+
+      /* ブラウザ上部のツールバー */
+      .browser-toolbar {
+        background: #222;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid #444;
+      }
+
+      .browser-close-btn {
+        background: #ff4a4a;
+        color: white;
+        border: none;
+        padding: 5px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 12px;
+      }
+
+      .browser-close-btn:hover {
+        background: #ff2222;
+      }
+
+      .browser-url-display {
+        flex-grow: 1;
+        background: #333;
+        color: #39ffd7;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: monospace;
+      }
+
+      /* ページを表示するiframe */
+      #previewFrame {
+        width: 100%;
+        height: calc(100% - 38px);
+        border: none;
+        background: #fff;
       }
     </style>
 </head>
@@ -235,9 +295,9 @@
     </div>
 
     <div class="main-container" id="mainContainer">
-            <div class="container">
-        <img src="https://web.archive.org/web/19990504112211im_/http://www.google.com/google.jpg" alt="">
-    </div>
+      <div class="container">
+        <img src="https://web.archive.org/web/19990504112211im_/http://www.google.com/google.jpg" alt="Retro Google Logo">
+      </div>
       <div class="search-box">
         <input 
           autocomplete="off" 
@@ -255,12 +315,19 @@
 
     <div id="results-container"></div>
 
+    <div id="browser-container">
+      <div class="browser-toolbar">
+        <button class="browser-close-btn" onclick="closeBrowser()">× 閉じる</button>
+        <div class="browser-url-display" id="browserUrlDisplay">URL: Loading...</div>
+      </div>
+      <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+    </div>
+
     <div class="bottom-left">
       Mikancat1045 on github (Powered by Custom Google Scraper)
     </div>
 
     <script>
-      // プロキシURLとGoogle検索ベースURL
       const proxyBase = 'https://api.codetabs.com/v1/proxy?quest=';
       const googleSearchBase = 'https://www.google.com/search?q=';
 
@@ -275,12 +342,13 @@
         const mainContainer = document.getElementById('mainContainer');
         const resultsContainer = document.getElementById('results-container');
         
-        // 検索窓を上部に移動させ、結果コンテナを表示する
         mainContainer.classList.add('has-results');
         resultsContainer.style.display = 'block';
         resultsContainer.innerHTML = '<div class="status-message">星空の彼方から検索中...</div>';
 
-        // Googleの検索結果URLを構築してエンコード
+        // ブラウザが開いていたら一旦閉じる
+        closeBrowser();
+
         const targetUrl = googleSearchBase + encodeURIComponent(query);
         const fullProxyUrl = proxyBase + encodeURIComponent(targetUrl);
 
@@ -290,35 +358,25 @@
             return response.text();
           })
           .then(html => {
-            // 取得したHTMLをパースする
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            
-            // Googleの検索結果ブロック（一般的な構造）を抽出
-            // GoogleのHTML構造は定期的に変わりますが、主に 'g' クラスや特定のdivに結果が入ります
             const searchBlocks = doc.querySelectorAll('div.g, div.tF23ub, div.KvNfTe');
             
             if (searchBlocks.length === 0) {
-              // 簡易構造（モバイル版や古いUI向けフォールバック）
               parseFallbackResults(doc, resultsContainer);
               return;
             }
 
-            resultsContainer.innerHTML = ''; // クリア
+            resultsContainer.innerHTML = ''; 
 
             searchBlocks.forEach(block => {
-              // タイトルとリンク先の抽出
               const anchor = block.querySelector('a');
               const titleEl = block.querySelector('h3');
-              
-              // 概要（スニペット）の抽出
-              // Googleの構造上、VwiC3b, yXBZbf などのクラスや、h3の後のdivに格納されることが多い
               const snippetEl = block.querySelector('div.VwiC3b, div.yXBZbf, div.BNeawe');
 
               if (anchor && titleEl) {
                 const title = titleEl.textContent;
                 const url = anchor.href;
-                // プロキシ経由のURLになってしまうのを防ぐため、オリジナルのURLを抽出
                 const cleanUrl = fixGoogleUrl(url); 
                 const snippet = snippetEl ? snippetEl.textContent : '詳細な説明はありません。';
 
@@ -326,21 +384,18 @@
               }
             });
 
-            // 万が一何もパースできなかった場合のダブルチェック
             if (resultsContainer.children.length === 0) {
               parseFallbackResults(doc, resultsContainer);
             }
           })
           .catch(error => {
             console.error(error);
-            resultsContainer.innerHTML = `<div class="status-message" style="color: #ff3939;">エラーが発生しました: ${error.message}<br>しばらく時間をおいて試すか、別のワードでお試しください。</div>`;
+            resultsContainer.innerHTML = `<div class="status-message" style="color: #ff3939;">エラーが発生しました: ${error.message}</div>`;
           });
       }
 
-      // 構造が変わっていた場合の予備のパース処理
       function parseFallbackResults(doc, container) {
         container.innerHTML = '';
-        // すべてのh3（リンクタイトル）をベースに探す
         const titles = doc.querySelectorAll('h3');
         
         titles.forEach(titleEl => {
@@ -349,8 +404,7 @@
             const title = titleEl.textContent;
             const cleanUrl = fixGoogleUrl(anchor.href);
             
-            // 近辺のテキストをスニペットとして取得
-            let snippet = 'クリックしてページにアクセスできます。';
+            let snippet = 'クリックしてページ内ブラウザで開きます。';
             let nextEl = titleEl.parentElement.nextElementSibling;
             if (nextEl) snippet = nextEl.textContent.substring(0, 150) + '...';
 
@@ -359,18 +413,16 @@
         });
 
         if (container.children.length === 0) {
-          container.innerHTML = '<div class="status-message">検索結果が見つかりませんでした。別のキーワードを試してください。</div>';
+          container.innerHTML = '<div class="status-message">検索結果が見つかりませんでした。</div>';
         }
       }
 
-      // Googleのクエリリダイレクト（/url?q=...）から純粋なURLを取り出す関数
       function fixGoogleUrl(urlStr) {
         try {
           const urlObj = new URL(urlStr);
           if (urlObj.pathname === '/url' && urlObj.searchParams.has('q')) {
             return urlObj.searchParams.get('q');
           }
-          // すでにcodetabsのプロキシURLが含まれている場合はデコードして抽出
           if (urlStr.includes('quest=')) {
             const parts = urlStr.split('quest=');
             return decodeURIComponent(parts[1]);
@@ -381,18 +433,50 @@
         }
       }
 
-      // 検索結果のHTML要素を生成して追加する関数
+      // 検索結果のDOM生成（クリック時に内蔵ブラウザを起動するよう変更）
       function createResultDOM(container, title, url, snippet) {
         const item = document.createElement('div');
         item.classList.add('search-result-item');
 
+        // aタグの標準リンク遷移を無効化し、openInInternalBrowser関数を実行
         item.innerHTML = `
-          <h3 class="result-title"><a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a></h3>
+          <h3 class="result-title">
+            <a onclick="event.preventDefault(); openInInternalBrowser('${url}')">${title}</a>
+          </h3>
           <div class="result-url">${url}</div>
           <div class="result-snippet">${snippet}</div>
         `;
 
         container.appendChild(item);
+      }
+
+      // 【新機能】ページ内の枠（iframe）でサイトを閲覧する関数
+      function openInInternalBrowser(url) {
+        const browserContainer = document.getElementById('browser-container');
+        const previewFrame = document.getElementById('previewFrame');
+        const urlDisplay = document.getElementById('browserUrlDisplay');
+
+        // アドレスバーにターゲットURLを表示
+        urlDisplay.textContent = `接続先: ${url}`;
+        
+        // 無料プロキシを経由させることで、iframe内のCORS制限を突破してHTMLを表示
+        previewFrame.src = proxyBase + encodeURIComponent(url);
+        
+        // ブラウザコンテナを表示
+        browserContainer.style.display = 'block';
+        
+        // 開いたブラウザの場所までスムーズにスクロール
+        browserContainer.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      // 内蔵ブラウザを閉じる処理
+      function closeBrowser() {
+        const browserContainer = document.getElementById('browser-container');
+        const previewFrame = document.getElementById('previewFrame');
+        if (browserContainer && previewFrame) {
+          previewFrame.src = 'about:blank'; // 読み込み中のリソースをクリア
+          browserContainer.style.display = 'none';
+        }
       }
     </script>
 </body>
