@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
     <title>Google Search Engine</title>
     <style>
       body {
@@ -49,9 +48,14 @@
         }
       }
 
-      .container-fluid {
+      .main-container {
         position: relative;
         z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        flex-direction: column;
       }
 
       .bottom-left {
@@ -62,9 +66,154 @@
         font-size: 16px;
         color: rgba(255, 255, 255, 0.2);
         padding: 10px;
-        z-index: 10;
+        z-index: 20;
       }
 
+      .search-box {
+        text-align: center;
+        z-index: 100;
+      }
+
+      .search-box input {
+        width: 500px;
+        padding: 15px 20px;
+        font-size: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 25px;
+        background-color: rgba(255, 255, 255, 0.95);
+        color: #000;
+        outline: none;
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+      }
+
+      .search-box input:focus {
+        border-color: #39ffd7;
+        box-shadow: 0 0 15px rgba(57, 255, 215, 0.3);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+
+      .button-group button {
+        font-family: Arial;
+        font-size: 14px;
+        color: #fff;
+        background-color: rgba(51, 51, 51, 0.9);
+        padding: 10px 25px;
+        border: 1px solid rgba(57, 255, 215, 0.3);
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .button-group button:hover {
+        background-color: rgba(51, 51, 51, 1);
+        border-color: #39ffd7;
+        box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
+      }
+
+      /* 検索結果表示 */
+      #search-results {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 999;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(1, 44, 42, 0.8));
+        overflow-y: auto;
+        padding: 40px 20px;
+      }
+
+      #search-results.show {
+        display: block;
+      }
+
+      .results-container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .results-header {
+        color: #39ffd7;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      .results-header h2 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .search-result-item {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(57, 255, 215, 0.2);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .search-result-item:hover {
+        background: rgba(57, 255, 215, 0.1);
+        border-color: #39ffd7;
+        transform: translateX(10px);
+      }
+
+      .result-title {
+        color: #39ffd7;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 5px;
+        text-decoration: none;
+      }
+
+      .result-url {
+        color: #00d4aa;
+        font-size: 13px;
+        margin-bottom: 8px;
+        word-break: break-all;
+      }
+
+      .result-description {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .loading-spinner {
+        text-align: center;
+        padding: 50px;
+        color: #39ffd7;
+      }
+
+      .back-button {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1001;
+        background-color: rgba(51, 51, 51, 0.9);
+        color: #39ffd7;
+        padding: 10px 20px;
+        border: 1px solid rgba(57, 255, 215, 0.3);
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .back-button:hover {
+        background-color: rgba(51, 51, 51, 1);
+        border-color: #39ffd7;
+        box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
+      }
+
+      /* プロキシコンテナ */
       #proxy-container {
         display: none;
         position: fixed;
@@ -86,7 +235,7 @@
         height: 100%;
       }
 
-      .back-button {
+      .proxy-back-button {
         position: fixed;
         top: 10px;
         left: 10px;
@@ -97,6 +246,17 @@
         border: none;
         border-radius: 5px;
         cursor: pointer;
+      }
+
+      @media (max-width: 768px) {
+        .search-box input {
+          width: 100%;
+          max-width: 90vw;
+        }
+
+        .results-container {
+          padding: 0 10px;
+        }
       }
     </style>
 </head>
@@ -121,51 +281,156 @@
         </script>
     </div>
 
-    <div class="container-fluid">
-        <ul class="m-3 nav">
-          <li class="ms-auto nav-item">
-            <a class="nav-link text-light" href="#">Gmail</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link text-light" href="#">Images</a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="btn btn-primary">Sign In</a>
-          </li>
-        </ul>
-        <br><br><br><br>
-      
-        <img class="rounded mx-auto d-block" src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="google logo">
-        <br>
-        
-        <div class="row justify-content-center">
-          <div class="col-md-6">
-            <form class="mt-4 text-center" id="searchForm" onsubmit="handleSearch(event)">
-              <input autocomplete="off" autofocus class="form-control form-control-lg mb-4 mx-auto rounded-pill" id="searchInput" placeholder="Search or enter URL" type="text" style="background-color: rgba(255, 255, 255, 0.9); color: #000;">
-              <button type="button" class="btn btn-light mx-2" onclick="handleProxySearch()">Proxy Search</button>
-              <button type="submit" class="btn btn-light mx-2">Google Search</button>
-            </form>
-          </div>
+    <div class="main-container">
+      <div class="search-box">
+        <input 
+          autocomplete="off" 
+          autofocus 
+          id="searchInput" 
+          placeholder="Search or enter URL" 
+          type="text"
+          onkeypress="if(event.key === 'Enter') handleGoogleSearch()"
+        >
+        <div class="button-group">
+          <button onclick="handleGoogleSearch()">Google Search</button>
+          <button onclick="handleProxySearch()">Proxy Search</button>
         </div>
+      </div>
     </div>
 
+    <!-- 検索結果画面 -->
+    <div id="search-results">
+      <button class="back-button" onclick="closeSearchResults()">← Back</button>
+      <div class="results-container">
+        <div class="results-header">
+          <h2 id="search-query-display"></h2>
+        </div>
+        <div id="results-content"></div>
+      </div>
+    </div>
+
+    <!-- プロキシコンテナ -->
     <div id="proxy-container">
-      <button class="back-button" onclick="closeProxy()">← Back</button>
+      <button class="proxy-back-button" onclick="closeProxy()">← Back</button>
       <div id="proxy-content"></div>
+    </div>
+
+    <div class="bottom-left">
+      Mikancat1045 on github
     </div>
 
     <script>
       const proxy = 'https://api.codetabs.com/v1/proxy?quest=';
 
-      function handleSearch(event) {
-        event.preventDefault();
-        const query = document.getElementById('searchInput').value;
-        // 修正: テンプレートリテラルを正しく使用
-        window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+      function handleGoogleSearch() {
+        const query = document.getElementById('searchInput').value.trim();
+        
+        if (!query) {
+          alert('検索キーワードを入力してください');
+          return;
+        }
+
+        fetchGoogleSearchResults(query);
+      }
+
+      function fetchGoogleSearchResults(query) {
+        const resultsContainer = document.getElementById('search-results');
+        const resultsContent = document.getElementById('results-content');
+        const queryDisplay = document.getElementById('search-query-display');
+
+        queryDisplay.textContent = `検索結果: "${query}"`;
+        resultsContent.innerHTML = '<div class="loading-spinner"><p>検索中...</p></div>';
+        resultsContainer.classList.add('show');
+
+        const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+
+        fetch(proxy + encodeURIComponent(googleSearchUrl))
+          .then(response => response.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            const results = parseGoogleResults(doc);
+            displaySearchResults(results, resultsContent);
+          })
+          .catch(error => {
+            resultsContent.innerHTML = `<div style="color: #ff6b6b; text-align: center; padding: 50px;">エラー: ${error.message}</div>`;
+          });
+      }
+
+      function parseGoogleResults(doc) {
+        const results = [];
+        const resultElements = doc.querySelectorAll('div.g, div.Gd5gf, .Gd5gf');
+
+        resultElements.forEach(element => {
+          try {
+            const titleElement = element.querySelector('h3, span[data-sokoban-class]');
+            const linkElement = element.querySelector('a[href*="url"]') || element.querySelector('a[href^="http"]');
+            
+            let url = '';
+            if (linkElement) {
+              const href = linkElement.getAttribute('href');
+              if (href && href.includes('/url?q=')) {
+                url = new URL(href, 'https://google.com').searchParams.get('q');
+              } else if (href) {
+                url = href;
+              }
+            }
+
+            const descElement = element.querySelector('.VwiC3b, .s, span.st');
+            const description = descElement ? descElement.textContent : element.textContent
+              .replace(titleElement?.textContent || '', '')
+              .substring(0, 200)
+              .trim();
+
+            if (titleElement && url && !url.includes('google.com')) {
+              results.push({
+                title: titleElement.textContent.trim(),
+                url: url,
+                description: description
+              });
+            }
+          } catch (e) {
+            console.error('Error parsing result:', e);
+          }
+        });
+
+        return results;
+      }
+
+      function displaySearchResults(results, container) {
+        if (results.length === 0) {
+          container.innerHTML = '<p style="color: #39ffd7; text-align: center; padding: 50px;">結果が見つかりませんでした</p>';
+          return;
+        }
+
+        let html = '';
+        results.slice(0, 10).forEach(result => {
+          const truncatedUrl = result.url.length > 100 ? result.url.substring(0, 100) + '...' : result.url;
+          html += `
+            <div class="search-result-item" onclick="openResult('${encodeURIComponent(result.url)}')">
+              <div class="result-title">${result.title}</div>
+              <div class="result-url">${truncatedUrl}</div>
+              <div class="result-description">${result.description}</div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+      }
+
+      function openResult(encodedUrl) {
+        const url = decodeURIComponent(encodedUrl);
+        closeSearchResults();
+        loadProxyContent(url);
+      }
+
+      function closeSearchResults() {
+        document.getElementById('search-results').classList.remove('show');
       }
 
       function handleProxySearch() {
-        const url = document.getElementById('searchInput').value;
+        const url = document.getElementById('searchInput').value.trim();
         
         if (!url) {
           alert('URLを入力してください');
