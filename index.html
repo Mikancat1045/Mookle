@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Starry Search & Browser</title>
+    <title>Starry Direct Search & Browser</title>
     <style>
       body {
         margin: 0;
@@ -39,7 +39,7 @@
         50% { transform: translate(50px, -50px); }
       }
 
-      /* 【UIそのまま】元の検索画面のレイアウト */
+      /* 元の検索画面のUIレイアウトを維持 */
       .main-container {
         position: relative;
         z-index: 10;
@@ -111,9 +111,9 @@
         box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
       }
 
-      /* 【追加】JavaScriptで切り替える全画面ブラウザ表示領域 */
+      /* JavaScript切り替え用の全画面ブラウザ画面 */
       #browser-view {
-        display: none; /* 初期状態は非表示 */
+        display: none; 
         position: fixed;
         top: 0;
         left: 0;
@@ -143,6 +143,8 @@
         font-weight: bold;
         font-size: 14px;
       }
+
+      .browser-close-btn:hover { background: #ff2222; }
 
       .browser-url-display {
         flex-grow: 1;
@@ -207,12 +209,12 @@
           autocomplete="off" 
           autofocus 
           id="searchInput" 
-          placeholder="検索キーワードを入力..." 
+          placeholder="URL、または検索キーワードを入力して移動..." 
           type="text"
-          onkeypress="if(event.key === 'Enter') triggerByeBlocker()"
+          onkeypress="if(event.key === 'Enter') executeDirectSearch()"
         >
         <div class="button-group">
-          <button onclick="triggerByeBlocker()">Google 検索</button>
+          <button onclick="executeDirectSearch()">Google 検索</button>
         </div>
       </div>
     </div>
@@ -228,47 +230,56 @@
     <div class="bottom-left">Tacogamerman on github</div>
 
     <script>
-      // 検索窓やボタンから呼び出される「Url?」プロンプト起動関数
-      function triggerByeBlocker() {
-        var link = prompt("Url?");
-        if (!link) return;
+      // 入力UIから直接URLを読み取る関数
+      function executeDirectSearch() {
+        var inputVal = document.getElementById('searchInput').value.trim();
+        if (!inputVal) {
+          alert('キーワードまたはURLを入力してください');
+          return;
+        }
 
-        // URLプロキシ取得 & ページ切り替えを実行
-        launchInternalBrowser(link);
+        var targetUrl = inputVal;
+
+        // 入力が単純な単語（スペースを含んだりドメインっぽくなかったり）ならGoogle検索クエリ化する
+        if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
+          if (inputVal.includes(' ') || !inputVal.includes('.')) {
+            targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
+          } else {
+            targetUrl = 'https://' + inputVal;
+          }
+        }
+
+        // ページ内ブラウザを起動
+        launchInternalBrowser(targetUrl);
       }
 
       // 【JavaScriptページ切り替え関数】ブラウザ画面へ切り替え
       function launchInternalBrowser(link) {
-        // 自動補完
-        if (!link.startsWith('http://') && !link.startsWith('https://')) {
-          link = 'https://' + link;
-        }
-
         var proxy = 'https://api.codetabs.com/v1/proxy?quest=';
         var mainContainer = document.getElementById('mainContainer');
         var browserView = document.getElementById('browser-view');
         var previewFrame = document.getElementById('previewFrame');
         var urlDisplay = document.getElementById('browserUrlDisplay');
 
-        // 1. プロキシ経由でHTMLを取得
+        // 1. プロキシ経由でHTMLを非同期取得
         fetch(proxy + encodeURIComponent(link))
           .then((response) => {
             if (!response.ok) throw new Error('ネットワークエラー');
             return response.text();
           })
           .then((text) => {
-            // 2. JavaScriptで画面要素の表示/非表示をパッと切り替える
-            mainContainer.style.display = 'none';   // 検索UIを隠す
-            browserView.style.display = 'flex';     // ブラウザ画面を全画面で出す
+            // 2. JavaScriptで画面切り替え
+            mainContainer.style.display = 'none';   
+            browserView.style.display = 'flex';     
             urlDisplay.textContent = `接続先: ${link}`;
 
-            // 3. iframe内に取得したHTMLソースをそのまま展開して流し込む
+            // 3. iframe内に取得したHTMLソースを書き込む
             var doc = previewFrame.contentWindow.document;
             doc.open();
             doc.write(text);
             doc.close();
 
-            // 4. さっきのコードにあった相対パス資産（画像やリンク等）の書き換えループ処理を適用
+            // 4. 元のコードの相対パス資産（画像やリンク等）の書き換え処理を適用
             setTimeout(function() {
               var all = doc.getElementsByTagName("*");
               for (var i = 0, max = all.length; i < max; i++) {
@@ -282,7 +293,7 @@
             }, 400);
           })
           .catch(err => {
-            alert("HTMLの取得に失敗しました: " + err.message);
+            alert("HTMLの取得に失敗しました。サイト側のセキュリティ制限か、URLが正しくない可能性があります。");
           });
       }
 
@@ -292,9 +303,11 @@
         var browserView = document.getElementById('browser-view');
         var previewFrame = document.getElementById('previewFrame');
 
-        previewFrame.src = 'about:blank'; // 読み込みクリア
-        browserView.style.display = 'none';  // ブラウザ画面を隠す
-        mainContainer.style.display = 'flex'; // 元のUIを再表示
+        previewFrame.src = 'about:blank'; 
+        browserView.style.display = 'none';  
+        mainContainer.style.display = 'flex'; 
+        document.getElementById('searchInput').value = ''; // 入力欄をクリア
+        document.getElementById('searchInput').focus();
       }
     </script>
 
@@ -347,8 +360,12 @@
           cursor: pointer;
         `;
         
-        // メニューのボタンが押された時も同じプロンプト関数を呼ぶ
-        button.onclick = triggerByeBlocker;
+        // メニューのボタンが押されたら、中央の検索ボックスにフォーカスを当てて入力を促す
+        button.onclick = function() {
+          var inputEl = document.getElementById('searchInput');
+          inputEl.focus();
+          inputEl.placeholder = "ここへ直接URLを入力してEnter！";
+        };
 
         menuContent.appendChild(closeButton);
         menuContent.appendChild(button);
