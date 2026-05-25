@@ -230,18 +230,23 @@
     <script>
       const proxy = 'https://corsproxy.io/?';
 
-      function executeDirectSearch() {
-        var inputVal = document.getElementById('searchInput').value.trim();
-        if (!inputVal) return;
+function executeDirectSearch() {
+  var inputVal = document.getElementById('searchInput').value.trim();
+  if (!inputVal) return;
 
-        if (inputVal.startsWith('http://') || inputVal.startsWith('https://') || (inputVal.includes('.') && !inputVal.includes(' '))) {
-          var targetUrl = inputVal.startsWith('http') ? inputVal : 'https://' + inputVal;
-          launchInternalBrowser(targetUrl);
-        } else {
-          // 🌟 Google公式の公式埋め込み検索エンジン（CSE）へジャンプ
-          launchGoogleCSE(inputVal);
-        }
-      }
+  var targetUrl = inputVal;
+  if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
+    if (inputVal.includes(' ') || !inputVal.includes('.')) {
+      targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
+    } else {
+      targetUrl = 'https://' + inputVal;
+    }
+  }
+
+  // 🌟海外の最高大手プロキシサーバー（CroxyProxy）の暗号化ゲートウェイを直撃して別タブで開く
+  var bypassUrl = 'https://www.croxyproxy.com/_ja/proxy?url=' + encodeURIComponent(targetUrl);
+  window.open(bypassUrl, '_blank');
+}
 
       function launchGoogleCSE(keyword) {
         var mainContainer = document.getElementById('mainContainer');
