@@ -237,7 +237,7 @@ function executeDirectSearch() {
   var targetUrl = inputVal;
   if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
     if (inputVal.includes(' ') || !inputVal.includes('.')) {
-      targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
+      targetUrl = 'https://duckduckgo.com/?ia=web&origin=funnel_home_website&t=h_&q=' + encodeURIComponent(targetUrl) + '&chip-select=search';
     } else {
       targetUrl = 'https://' + inputVal;
     }
