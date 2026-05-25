@@ -116,103 +116,6 @@
         box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
       }
 
-      /* 検索結果表示 */
-      #search-results {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 999;
-        background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(1, 44, 42, 0.8));
-        overflow-y: auto;
-        padding: 40px 20px;
-      }
-
-      #search-results.show {
-        display: block;
-      }
-
-      .results-container {
-        max-width: 900px;
-        margin: 0 auto;
-      }
-
-      .results-header {
-        color: #39ffd7;
-        margin-bottom: 30px;
-        text-align: center;
-      }
-
-      .results-header h2 {
-        margin: 0;
-        font-size: 24px;
-      }
-
-      .search-result-item {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(57, 255, 215, 0.2);
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 15px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-
-      .search-result-item:hover {
-        background: rgba(57, 255, 215, 0.1);
-        border-color: #39ffd7;
-        transform: translateX(10px);
-      }
-
-      .result-title {
-        color: #39ffd7;
-        font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 5px;
-        text-decoration: none;
-      }
-
-      .result-url {
-        color: #00d4aa;
-        font-size: 13px;
-        margin-bottom: 8px;
-        word-break: break-all;
-      }
-
-      .result-description {
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 14px;
-        line-height: 1.6;
-      }
-
-      .loading-spinner {
-        text-align: center;
-        padding: 50px;
-        color: #39ffd7;
-      }
-
-      .back-button {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        z-index: 1001;
-        background-color: rgba(51, 51, 51, 0.9);
-        color: #39ffd7;
-        padding: 10px 20px;
-        border: 1px solid rgba(57, 255, 215, 0.3);
-        border-radius: 5px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-
-      .back-button:hover {
-        background-color: rgba(51, 51, 51, 1);
-        border-color: #39ffd7;
-        box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
-      }
-
       /* プロキシコンテナ */
       #proxy-container {
         display: none;
@@ -246,6 +149,59 @@
         border: none;
         border-radius: 5px;
         cursor: pointer;
+        font-family: Arial;
+        font-size: 14px;
+        transition: all 0.3s ease;
+      }
+
+      .proxy-back-button:hover {
+        background-color: #555;
+      }
+
+      .proxy-url-bar {
+        position: fixed;
+        top: 50px;
+        left: 10px;
+        right: 10px;
+        z-index: 1001;
+        background-color: #f0f0f0;
+        padding: 8px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+
+      .proxy-url-input {
+        width: calc(100% - 80px);
+        padding: 8px;
+        border: none;
+        border-radius: 3px;
+        font-size: 13px;
+      }
+
+      .proxy-go-button {
+        width: 70px;
+        padding: 8px;
+        margin-left: 5px;
+        background-color: #333;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .proxy-go-button:hover {
+        background-color: #555;
+      }
+
+      #proxy-content {
+        margin-top: 60px;
+      }
+
+      .loading-spinner {
+        text-align: center;
+        padding: 50px;
+        color: #39ffd7;
       }
 
       @media (max-width: 768px) {
@@ -254,8 +210,14 @@
           max-width: 90vw;
         }
 
-        .results-container {
-          padding: 0 10px;
+        .proxy-url-bar {
+          top: 50px;
+          right: 5px;
+          left: 5px;
+        }
+
+        .proxy-url-input {
+          width: calc(100% - 75px);
         }
       }
     </style>
@@ -289,29 +251,27 @@
           id="searchInput" 
           placeholder="Search or enter URL" 
           type="text"
-          onkeypress="if(event.key === 'Enter') handleGoogleSearch()"
+          onkeypress="if(event.key === 'Enter') handleProxySearch()"
         >
         <div class="button-group">
-          <button onclick="handleGoogleSearch()">Google Search</button>
-          <button onclick="handleProxySearch()">Proxy Search</button>
+          <button onclick="handleProxySearch()">Open URL</button>
         </div>
-      </div>
-    </div>
-
-    <!-- 検索結果画面 -->
-    <div id="search-results">
-      <button class="back-button" onclick="closeSearchResults()">← Back</button>
-      <div class="results-container">
-        <div class="results-header">
-          <h2 id="search-query-display"></h2>
-        </div>
-        <div id="results-content"></div>
       </div>
     </div>
 
     <!-- プロキシコンテナ -->
     <div id="proxy-container">
       <button class="proxy-back-button" onclick="closeProxy()">← Back</button>
+      <div class="proxy-url-bar">
+        <input 
+          type="text" 
+          class="proxy-url-input" 
+          id="proxyUrlInput" 
+          placeholder="Enter URL..."
+          onkeypress="if(event.key === 'Enter') loadProxyFromBar()"
+        >
+        <button class="proxy-go-button" onclick="loadProxyFromBar()">GO</button>
+      </div>
       <div id="proxy-content"></div>
     </div>
 
@@ -321,113 +281,7 @@
 
     <script>
       const proxy = 'https://api.codetabs.com/v1/proxy?quest=';
-
-      function handleGoogleSearch() {
-        const query = document.getElementById('searchInput').value.trim();
-        
-        if (!query) {
-          alert('検索キーワードを入力してください');
-          return;
-        }
-
-        fetchGoogleSearchResults(query);
-      }
-
-      function fetchGoogleSearchResults(query) {
-        const resultsContainer = document.getElementById('search-results');
-        const resultsContent = document.getElementById('results-content');
-        const queryDisplay = document.getElementById('search-query-display');
-
-        queryDisplay.textContent = `検索結果: "${query}"`;
-        resultsContent.innerHTML = '<div class="loading-spinner"><p>検索中...</p></div>';
-        resultsContainer.classList.add('show');
-
-        const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-
-        fetch(proxy + encodeURIComponent(googleSearchUrl))
-          .then(response => response.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            
-            const results = parseGoogleResults(doc);
-            displaySearchResults(results, resultsContent);
-          })
-          .catch(error => {
-            resultsContent.innerHTML = `<div style="color: #ff6b6b; text-align: center; padding: 50px;">エラー: ${error.message}</div>`;
-          });
-      }
-
-      function parseGoogleResults(doc) {
-        const results = [];
-        const resultElements = doc.querySelectorAll('div.g, div.Gd5gf, .Gd5gf');
-
-        resultElements.forEach(element => {
-          try {
-            const titleElement = element.querySelector('h3, span[data-sokoban-class]');
-            const linkElement = element.querySelector('a[href*="url"]') || element.querySelector('a[href^="http"]');
-            
-            let url = '';
-            if (linkElement) {
-              const href = linkElement.getAttribute('href');
-              if (href && href.includes('/url?q=')) {
-                url = new URL(href, 'https://google.com').searchParams.get('q');
-              } else if (href) {
-                url = href;
-              }
-            }
-
-            const descElement = element.querySelector('.VwiC3b, .s, span.st');
-            const description = descElement ? descElement.textContent : element.textContent
-              .replace(titleElement?.textContent || '', '')
-              .substring(0, 200)
-              .trim();
-
-            if (titleElement && url && !url.includes('google.com')) {
-              results.push({
-                title: titleElement.textContent.trim(),
-                url: url,
-                description: description
-              });
-            }
-          } catch (e) {
-            console.error('Error parsing result:', e);
-          }
-        });
-
-        return results;
-      }
-
-      function displaySearchResults(results, container) {
-        if (results.length === 0) {
-          container.innerHTML = '<p style="color: #39ffd7; text-align: center; padding: 50px;">結果が見つかりませんでした</p>';
-          return;
-        }
-
-        let html = '';
-        results.slice(0, 10).forEach(result => {
-          const truncatedUrl = result.url.length > 100 ? result.url.substring(0, 100) + '...' : result.url;
-          html += `
-            <div class="search-result-item" onclick="openResult('${encodeURIComponent(result.url)}')">
-              <div class="result-title">${result.title}</div>
-              <div class="result-url">${truncatedUrl}</div>
-              <div class="result-description">${result.description}</div>
-            </div>
-          `;
-        });
-
-        container.innerHTML = html;
-      }
-
-      function openResult(encodedUrl) {
-        const url = decodeURIComponent(encodedUrl);
-        closeSearchResults();
-        loadProxyContent(url);
-      }
-
-      function closeSearchResults() {
-        document.getElementById('search-results').classList.remove('show');
-      }
+      let currentProxyUrl = '';
 
       function handleProxySearch() {
         const url = document.getElementById('searchInput').value.trim();
@@ -445,12 +299,31 @@
         loadProxyContent(finalUrl);
       }
 
+      function loadProxyFromBar() {
+        const url = document.getElementById('proxyUrlInput').value.trim();
+        
+        if (!url) {
+          alert('URLを入力してください');
+          return;
+        }
+
+        let finalUrl = url;
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          finalUrl = 'https://' + url;
+        }
+
+        loadProxyContent(finalUrl);
+      }
+
       function loadProxyContent(url) {
         const container = document.getElementById('proxy-container');
         const content = document.getElementById('proxy-content');
+        const urlInput = document.getElementById('proxyUrlInput');
         
-        content.innerHTML = '<p style="text-align: center; margin-top: 50px;">読み込み中...</p>';
+        content.innerHTML = '<div class="loading-spinner"><p>読み込み中...</p></div>';
         container.classList.add('show');
+        currentProxyUrl = url;
+        urlInput.value = url;
 
         fetch(proxy + encodeURIComponent(url))
           .then(response => response.text())
@@ -459,36 +332,12 @@
             const doc = parser.parseFromString(html, 'text/html');
 
             fixUrls(doc, url);
-
-            const scripts = doc.querySelectorAll('script');
-            scripts.forEach(script => {
-              if (script.src) {
-                script.src = proxy + encodeURIComponent(script.src);
-              }
-            });
-
-            const links = doc.querySelectorAll('a');
-            links.forEach(link => {
-              if (link.href && !link.href.startsWith('javascript:')) {
-                const newUrl = new URL(link.href, url).href;
-                link.onclick = (e) => {
-                  e.preventDefault();
-                  loadProxyContent(newUrl);
-                };
-              }
-            });
-
-            const forms = doc.querySelectorAll('form');
-            forms.forEach(form => {
-              form.onsubmit = (e) => {
-                e.preventDefault();
-                const formUrl = new URL(form.action || url, url).href;
-                loadProxyContent(formUrl);
-              };
-            });
+            fixLinks(doc, url);
+            fixForms(doc, url);
 
             content.innerHTML = doc.documentElement.innerHTML;
 
+            // スクリプトを実行
             const newScripts = content.querySelectorAll('script');
             newScripts.forEach(script => {
               const newScript = document.createElement('script');
@@ -497,47 +346,106 @@
               } else {
                 newScript.textContent = script.textContent;
               }
-              content.appendChild(newScript);
+              try {
+                content.appendChild(newScript);
+              } catch (e) {
+                console.error('Error executing script:', e);
+              }
             });
           })
           .catch(error => {
-            content.innerHTML = `<p style="color: red; text-align: center; margin-top: 50px;">エラー: ${error.message}</p>`;
+            content.innerHTML = `<div style="color: red; text-align: center; margin-top: 50px; padding: 50px; font-size: 18px;">エラー: ${error.message}</div>`;
           });
       }
 
       function fixUrls(doc, baseUrl) {
+        // 画像のURLを修正
         doc.querySelectorAll('img').forEach(img => {
-          if (img.src) {
-            const absoluteUrl = new URL(img.src, baseUrl).href;
-            img.src = proxy + encodeURIComponent(absoluteUrl);
+          if (img.src && !img.src.startsWith('data:')) {
+            try {
+              const absoluteUrl = new URL(img.src, baseUrl).href;
+              img.src = proxy + encodeURIComponent(absoluteUrl);
+            } catch (e) {
+              console.error('Error fixing img URL:', e);
+            }
           }
         });
 
+        // リンクのURLを修正
         doc.querySelectorAll('link[href]').forEach(link => {
-          if (link.href) {
-            const absoluteUrl = new URL(link.href, baseUrl).href;
-            link.href = proxy + encodeURIComponent(absoluteUrl);
+          if (link.href && !link.href.startsWith('data:')) {
+            try {
+              const absoluteUrl = new URL(link.href, baseUrl).href;
+              link.href = proxy + encodeURIComponent(absoluteUrl);
+            } catch (e) {
+              console.error('Error fixing link URL:', e);
+            }
           }
         });
 
+        // iframeのURLを修正
         doc.querySelectorAll('iframe').forEach(iframe => {
-          if (iframe.src) {
-            const absoluteUrl = new URL(iframe.src, baseUrl).href;
-            iframe.src = proxy + encodeURIComponent(absoluteUrl);
+          if (iframe.src && !iframe.src.startsWith('data:')) {
+            try {
+              const absoluteUrl = new URL(iframe.src, baseUrl).href;
+              iframe.src = proxy + encodeURIComponent(absoluteUrl);
+            } catch (e) {
+              console.error('Error fixing iframe URL:', e);
+            }
           }
         });
 
+        // CSSのURLを修正
         doc.querySelectorAll('style').forEach(style => {
           style.textContent = style.textContent.replace(/url\(['"]?(?!data:)([^'")]+)['"]?\)/g, (match, urlPath) => {
-            const absoluteUrl = new URL(urlPath, baseUrl).href;
-            return `url('${proxy + encodeURIComponent(absoluteUrl)}')`;
+            try {
+              const absoluteUrl = new URL(urlPath, baseUrl).href;
+              return `url('${proxy + encodeURIComponent(absoluteUrl)}')`;
+            } catch (e) {
+              console.error('Error fixing CSS URL:', e);
+              return match;
+            }
           });
+        });
+      }
+
+      function fixLinks(doc, baseUrl) {
+        doc.querySelectorAll('a').forEach(link => {
+          if (link.href && !link.href.startsWith('javascript:') && !link.href.startsWith('data:')) {
+            try {
+              const newUrl = new URL(link.href, baseUrl).href;
+              link.onclick = (e) => {
+                e.preventDefault();
+                loadProxyContent(newUrl);
+              };
+            } catch (e) {
+              console.error('Error fixing link:', e);
+            }
+          }
+        });
+      }
+
+      function fixForms(doc, baseUrl) {
+        doc.querySelectorAll('form').forEach(form => {
+          form.onsubmit = (e) => {
+            e.preventDefault();
+            try {
+              const formUrl = new URL(form.action || baseUrl, baseUrl).href;
+              const formData = new FormData(form);
+              const params = new URLSearchParams(formData);
+              const fullUrl = formUrl + '?' + params.toString();
+              loadProxyContent(fullUrl);
+            } catch (e) {
+              console.error('Error submitting form:', e);
+            }
+          };
         });
       }
 
       function closeProxy() {
         document.getElementById('proxy-container').classList.remove('show');
         document.getElementById('proxy-content').innerHTML = '';
+        document.getElementById('searchInput').focus();
       }
     </script>
 </body>
