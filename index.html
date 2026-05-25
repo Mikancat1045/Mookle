@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCUnblocker (Anti-Bot Bypass)</title>
+    <title>MCUnblocker (Google CSE)</title>
     <style>
       body {
         margin: 0;
@@ -207,12 +207,12 @@
           autocomplete="off" 
           autofocus 
           id="searchInput" 
-          placeholder="URL、または検索キーワードを入力..." 
+          placeholder="URL、またはGoogle検索キーワードを入力..." 
           type="text"
           onkeypress="if(event.key === 'Enter') executeDirectSearch()"
         >
         <div class="button-group">
-          <button onclick="executeDirectSearch()">Web 検索</button>
+          <button onclick="executeDirectSearch()">Google 検索</button>
         </div>
       </div>
     </div>
@@ -222,38 +222,83 @@
         <button class="browser-close-btn" onclick="switchPageToSearch()">× 閉じる</button>
         <div class="browser-url-display" id="browserUrlDisplay">URL: none</div>
       </div>
-      <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"></iframe>
+      <iframe id="previewFrame" sandbox="allow-scripts allow-forms allow-popups"></iframe>
     </div>
 
     <div class="bottom-left">Tacogamerman on github</div>
 
     <script>
-      // 対策：ロボット判定を受けにくい複数のProxyをローテーション、およびベースを変更
-      const proxyList = [
-        'https://corsproxy.io/?',
-        'https://api.codetabs.com/v1/proxy?quest='
-      ];
-      let currentProxyIndex = 0;
+      const proxy = 'https://corsproxy.io/?';
 
       function executeDirectSearch() {
         var inputVal = document.getElementById('searchInput').value.trim();
         if (!inputVal) return;
 
-        var targetUrl = inputVal;
-        
-        // URLかキーワードかの厳格な判定
-        if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
-          // ドットがない、またはスペースがある場合は検索キーワード
-          if (inputVal.includes(' ') || !inputVal.includes('.')) {
-            // 🌟解決策：ロボット判定を絶対に受けない「Bing（モバイル軽量版）」を検索エンジンに採用
-            targetUrl = 'https://www.bing.com/search?q=' + encodeURIComponent(inputVal);
-          } else {
-            targetUrl = 'https://' + inputVal;
-          }
+        if (inputVal.startsWith('http://') || inputVal.startsWith('https://') || (inputVal.includes('.') && !inputVal.includes(' '))) {
+          var targetUrl = inputVal.startsWith('http') ? inputVal : 'https://' + inputVal;
+          launchInternalBrowser(targetUrl);
+        } else {
+          // 🌟 Google公式の公式埋め込み検索エンジン（CSE）へジャンプ
+          launchGoogleCSE(inputVal);
         }
+      }
 
-        currentProxyIndex = 0; 
-        launchInternalBrowser(targetUrl);
+      function launchGoogleCSE(keyword) {
+        var mainContainer = document.getElementById('mainContainer');
+        var browserView = document.getElementById('browser-view');
+        var previewFrame = document.getElementById('previewFrame');
+        var urlDisplay = document.getElementById('browserUrlDisplay');
+
+        urlDisplay.textContent = `Google公式セキュア検索: ${keyword}`;
+        mainContainer.style.display = 'none';   
+        browserView.style.display = 'flex';
+
+        // ロボット判定が絶対に起きないGoogleカスタム検索のベースHTMLを動的生成
+        var cseHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { background: #fff; font-family: arial, sans-serif; padding: 20px; }
+              .gsc-control-cse { padding: 0 !important; }
+            </style>
+            <script async src="https://cse.google.com/cse.js?cx=partner-pub-2698861478625136:1951802111"><\/script>
+          </head>
+          <body>
+            <h3>Google カスタム検索</h3>
+            <div class="gcse-searchresults-only" data-queryParameterName="q"></div>
+          </body>
+          </html>
+        `;
+
+        var doc = previewFrame.contentWindow.document;
+        doc.open();
+        doc.write(cseHtml);
+        doc.close();
+
+        // Googleが読み込まれて結果が表示されるのを待ってから、リンクを乗っ取る
+        // URLに検索ワードを付与してGoogle側に認識させる
+        previewFrame.contentWindow.history.replaceState(null, null, "?q=" + encodeURIComponent(keyword));
+
+        var checkExist = setInterval(function() {
+          var links = doc.getElementsByTagName("a");
+          if (links.length > 0) {
+            for (var j = 0; j < links.length; j++) {
+              // Googleの検索結果のリンクをクリックしたとき、このブラウザ内でプロキシ経由で開く
+              links[j].addEventListener('click', function(e) {
+                var href = this.getAttribute('href') || this.dataset.ctorig;
+                if (!href) return;
+                e.preventDefault();
+                e.stopPropagation();
+                launchInternalBrowser(href);
+              }, true);
+            }
+          }
+        }, 1000);
+
+        // 閉じた時に監視を止めるため、iframe要素にタイマーIDを退避
+        previewFrame.dataset.timerId = checkExist;
       }
 
       function launchInternalBrowser(link) {
@@ -262,15 +307,18 @@
         var previewFrame = document.getElementById('previewFrame');
         var urlDisplay = document.getElementById('browserUrlDisplay');
 
-        var activeProxy = proxyList[currentProxyIndex];
+        // CSEの定期チェックタイマーが動いていれば止める
+        if (previewFrame.dataset.timerId) {
+          clearInterval(parseInt(previewFrame.dataset.timerId));
+        }
 
         urlDisplay.textContent = `接続中...`;
         mainContainer.style.display = 'none';   
         browserView.style.display = 'flex';
 
-        fetch(activeProxy + encodeURIComponent(link))
+        fetch(proxy + encodeURIComponent(link))
           .then((response) => {
-            if (!response.ok) throw new Error('Proxy block');
+            if (!response.ok) throw new Error('Network error');
             return response.text();
           })
           .then((text) => {
@@ -278,20 +326,19 @@
 
             var doc = previewFrame.contentWindow.document;
             doc.open();
-            // ベースURL（相対パス維持のため）を明示的に指定して書き込み
             doc.write('<base href="' + link + '">\n' + text);
             doc.close();
 
-            // リンク・画像などのセキュリティプロキシ再適応処理
+            // リンクの再プロキシ化
             setTimeout(function() {
               var allElements = doc.getElementsByTagName("*");
               for (var i = 0; i < allElements.length; i++) {
                 if (allElements[i].src) {
                   try {
                     var rawSrc = allElements[i].src;
-                    if (!rawSrc.includes('api.codetabs.com') && !rawSrc.includes('corsproxy.io')) {
+                    if (!rawSrc.includes('corsproxy.io')) {
                       var absoluteSrc = new URL(rawSrc, link).href;
-                      allElements[i].src = activeProxy + encodeURIComponent(absoluteSrc);
+                      allElements[i].src = proxy + encodeURIComponent(absoluteSrc);
                     }
                   } catch(e) {}
                 }
@@ -299,9 +346,7 @@
 
               var links = doc.getElementsByTagName("a");
               for (var j = 0; j < links.length; j++) {
-                if (links[j].target) {
-                  links[j].target = "_self";
-                }
+                if (links[j].target) links[j].target = "_self";
 
                 links[j].onclick = function(e) {
                   var href = this.getAttribute('href');
@@ -315,21 +360,8 @@
             }, 600); 
           })
           .catch(err => {
-            // 1つ目のプロキシで弾かれたら、自動で次のプロキシでリトライ
-            if (currentProxyIndex < proxyList.length - 1) {
-              currentProxyIndex++;
-              launchInternalBrowser(link);
-            } else {
-              // 最終的にダメだった場合は、直接開くためのリンクを救済措置として出す
-              var doc = previewFrame.contentWindow.document;
-              doc.open();
-              doc.write('<div style="padding:20px; font-family:sans-serif; text-align:center;">' +
-                        '<h3>プロキシサーバーが混雑しています</h3>' +
-                        '<p>通常の接続を試みるには下記をクリックしてください（制限環境ではブロックされる可能性があります）</p>' +
-                        '<a href="' + link + '" target="_blank" style="color:#00ffff; font-weight:bold;">' + link + ' を直接開く</a>' +
-                        '</div>');
-              doc.close();
-            }
+            alert("接続できませんでした。対象サイトの制限かプロキシの限界です。");
+            switchPageToSearch();
           });
       }
 
@@ -337,6 +369,10 @@
         var mainContainer = document.getElementById('mainContainer');
         var browserView = document.getElementById('browser-view');
         var previewFrame = document.getElementById('previewFrame');
+
+        if (previewFrame.dataset.timerId) {
+          clearInterval(parseInt(previewFrame.dataset.timerId));
+        }
 
         previewFrame.src = 'about:blank'; 
         browserView.style.display = 'none';  
