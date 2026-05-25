@@ -3,17 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Starry Search Engine with Browser</title>
+    <title>Starry Browser Environment</title>
     <style>
+      /* 全体スタイル */
       body {
         margin: 0;
+        padding: 0;
         overflow: hidden;
         font-family: Arial, sans-serif;
         background-color: #000;
+        height: 100vh;
+        width: 100vw;
       }
     
+      /* 星空背景 */
       #background {
         position: absolute;
+        top: 0;
+        left: 0;
         width: 100vw;
         height: 100vh;
         overflow: hidden;
@@ -30,209 +37,61 @@
       }
     
       @keyframes sparkle {
-        0%, 100% {
-          opacity: 0;
-          transform: scale(0);
-        }
-        50% {
-          opacity: 1;
-          transform: scale(1);
-        }
+        0%, 100% { opacity: 0; transform: scale(0); }
+        50% { opacity: 1; transform: scale(1); }
       }
     
       @keyframes drift {
-        0%, 100% {
-          transform: translate(0, 0);
-        }
-        50% {
-          transform: translate(50px, -50px);
-        }
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(50px, -50px); }
       }
 
-      .main-container {
-        position: relative;
-        z-index: 10;
+      /* 画像コンテナ用（将来拡張用スタイル） */
+      .image-container {
         display: flex;
-        align-items: center;
+        flex-wrap: wrap;
         justify-content: center;
-        height: 100vh;
-        flex-direction: column;
-        transition: all 0.5s ease;
+        position: relative;
+        z-index: 5;
       }
-
-      /* 検索結果表示時に、検索窓を上部に移動させるためのクラス */
-      .main-container.has-results {
-        height: auto;
-        padding-top: 40px;
-        padding-bottom: 20px;
-      }
-
-      .container {
-        margin-bottom: 15px;
-        z-index: 100;
-      }
-
-      .container img {
-        max-width: 200px;
-        height: auto;
-      }
-
-      .bottom-left {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-        color: rgba(255, 255, 255, 0.2);
+    
+      .image {
+        width: 250px;
+        height: 250px;
+        border: 2px solid #daf3f1;
+        margin: 40px;
         padding: 10px;
-        z-index: 20;
-      }
-
-      .search-box {
-        text-align: center;
-        z-index: 100;
-        width: 100%;
-        max-width: 600px;
-      }
-
-      .search-box input {
-        width: 100%;
         box-sizing: border-box;
-        padding: 15px 20px;
-        font-size: 16px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-radius: 25px;
-        background-color: rgba(255, 255, 255, 0.95);
-        color: #000;
-        outline: none;
-        transition: all 0.3s ease;
-        margin-bottom: 20px;
-      }
-
-      .search-box input:focus {
-        border-color: #39ffd7;
-        box-shadow: 0 0 15px rgba(57, 255, 215, 0.3);
-      }
-
-      .button-group {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-      }
-
-      .button-group button {
-        font-family: Arial;
-        font-size: 14px;
-        color: #fff;
-        background-color: rgba(51, 51, 51, 0.9);
-        padding: 10px 25px;
-        border: 1px solid rgba(57, 255, 215, 0.3);
-        border-radius: 5px;
-        cursor: pointer;
         transition: all 0.3s ease;
       }
-
-      .button-group button:hover {
-        background-color: rgba(51, 51, 51, 1);
-        border-color: #39ffd7;
-        box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
+    
+      .image:hover {
+        transform: scale(1.1);
+        border-color: #9900ff;
       }
 
-      /* 検索結果用コンテナ（画面上部に結果リストをコンパクトに配置） */
-      #results-container {
-        position: relative;
-        z-index: 10;
-        width: 100%;
-        max-width: 700px;
-        margin: 0 auto;
-        padding: 0 20px;
-        box-sizing: border-box;
-        display: none;
-        max-height: 35vh;
-        overflow-y: auto;
-        scrollbar-width: thin;
-        scrollbar-color: #39ffd7 rgba(0,0,0,0.5);
-      }
-
-      #results-container::-webkit-scrollbar {
-        width: 6px;
-      }
-      #results-container::-webkit-scrollbar-thumb {
-        background: #39ffd7;
-        border-radius: 3px;
-      }
-
-      .search-result-item {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(57, 255, 215, 0.1);
-        padding: 15px;
-        margin-bottom: 10px;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-      }
-
-      .search-result-item:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: #39ffd7;
-      }
-
-      .result-title {
-        font-size: 16px;
-        margin: 0 0 5px 0;
-      }
-
-      .result-title a {
-        color: #39ffd7;
-        text-decoration: none;
-        cursor: pointer;
-      }
-
-      .result-title a:hover {
-        text-decoration: underline;
-      }
-
-      .result-url {
-        font-size: 11px;
-        color: rgba(57, 255, 215, 0.6);
-        margin-bottom: 5px;
-        word-break: break-all;
-      }
-
-      .result-snippet {
-        font-size: 13px;
-        color: #e0e0e0;
-        line-height: 1.4;
-      }
-
-      .status-message {
-        text-align: center;
-        padding: 20px;
-        color: #39ffd7;
-        font-size: 16px;
-      }
-
-      /* ページ内ウェブブラウザコンテナ */
+      /* 内蔵Webブラウザ表示領域（星空に浮かぶウィンドウ） */
       #browser-container {
-        display: none;
-        position: relative;
-        z-index: 100;
-        width: 95vw;
-        height: 50vh;
-        margin: 15px auto;
+        display: none; /* 最初は非表示 */
+        position: absolute;
+        top: 15vh;
+        left: 5vw;
+        width: 90vw;
+        height: 70vh;
         background: #fff;
         border: 2px solid #39ffd7;
         border-radius: 8px;
-        box-shadow: 0 0 20px rgba(57, 255, 215, 0.4);
+        box-shadow: 0 0 30px rgba(57, 255, 215, 0.4);
+        z-index: 100;
         overflow: hidden;
       }
 
-      /* ブラウザ上部のツールバー */
       .browser-toolbar {
         background: #222;
-        padding: 8px;
+        padding: 8px 12px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 15px;
         border-bottom: 1px solid #444;
       }
 
@@ -244,12 +103,9 @@
         border-radius: 4px;
         cursor: pointer;
         font-weight: bold;
-        font-size: 12px;
       }
 
-      .browser-close-btn:hover {
-        background: #ff2222;
-      }
+      .browser-close-btn:hover { background: #ff2222; }
 
       .browser-url-display {
         flex-grow: 1;
@@ -257,224 +113,206 @@
         color: #39ffd7;
         padding: 5px 10px;
         border-radius: 4px;
-        font-size: 12px;
-        white-space: nowrap;
+        font-size: 13px;
+        font-family: monospace;
         overflow: hidden;
         text-overflow: ellipsis;
-        font-family: monospace;
+        white-space: nowrap;
       }
 
-      /* ページを表示するiframe */
       #previewFrame {
         width: 100%;
-        height: calc(100% - 38px);
+        height: calc(100% - 41px);
         border: none;
         background: #fff;
+      }
+
+      /* フッタークレジット */
+      .bottom-left {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        font-family: Arial, sans-serif;
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.2); 
+        padding: 10px;
+        z-index: 10;
+        pointer-events: none;
       }
     </style>
 </head>
 <body>
-    <div id="background">
-        <script>
-          const numStars = 300;
-          const background = document.getElementById('background');
-    
-          for (let i = 0; i < numStars; i++) {
-            const star = document.createElement('div');
-            star.classList.add('star');
-            star.style.width = `${Math.random() * 3}px`;
-            star.style.height = star.style.width;
-            star.style.left = `${Math.random() * 100}vw`;
-            star.style.top = `${Math.random() * 100}vh`;
-            star.style.animationDelay = `${Math.random() * 2}s`;
-            star.style.animationDuration = `${2 + Math.random() * 1}s`;
-    
-            background.appendChild(star);
-          }
-        </script>
-    </div>
 
-    <div class="main-container" id="mainContainer">
-      <div class="container">
-        <img src="https://web.archive.org/web/19990504112211im_/http://www.google.com/google.jpg" alt="Retro Google Logo">
-      </div>
-      <div class="search-box">
-        <input 
-          autocomplete="off" 
-          autofocus 
-          id="searchInput" 
-          placeholder="検索キーワードを入力..." 
-          type="text"
-          onkeypress="if(event.key === 'Enter') handleGoogleSearch()"
-        >
-        <div class="button-group">
-          <button onclick="handleGoogleSearch()">Google 検索</button>
-        </div>
-      </div>
-    </div>
+    <div id="background"></div>
 
-    <div id="results-container"></div>
-
-    <div id="browser-container">
+    <div id="browser-container" id="browserContainer">
       <div class="browser-toolbar">
         <button class="browser-close-btn" onclick="closeBrowser()">× 閉じる</button>
-        <div class="browser-url-display" id="browserUrlDisplay">URL: Loading...</div>
+        <div class="browser-url-display" id="browserUrlDisplay">URL: none</div>
       </div>
       <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
     </div>
 
-    <div class="bottom-left">
-      Mikancat1045 on github (Powered by Custom Google Scraper)
-    </div>
+    <div class="bottom-left">Tacogamerman on github</div>
 
     <script>
-      const proxyBase = 'https://api.codetabs.com/v1/proxy?quest=';
-      const googleSearchBase = 'https://www.google.com/search?q=';
+      const numStars = 300;
+      const background = document.getElementById('background');
 
-      function handleGoogleSearch() {
-        const query = document.getElementById('searchInput').value.trim();
-        
-        if (!query) {
-          alert('検索キーワードを入力してください');
-          return;
-        }
+      for (let i = 0; i < numStars; i++) {
+        const star = document.createElement('div');
+        star.classList.add('star');
+        star.style.width = `${Math.random() * 3}px`;
+        star.style.height = star.style.width;
+        star.style.left = `${Math.random() * 100}vw`;
+        star.style.top = `${Math.random() * 100}vh`;
+        star.style.animationDelay = `${Math.random() * 2}s`;
+        star.style.animationDuration = `${2 + Math.random() * 1}s`;
 
-        const mainContainer = document.getElementById('mainContainer');
-        const resultsContainer = document.getElementById('results-container');
-        
-        mainContainer.classList.add('has-results');
-        resultsContainer.style.display = 'block';
-        resultsContainer.innerHTML = '<div class="status-message">星空の彼方から検索中...</div>';
-
-        // ブラウザが開いていたら一旦閉じる
-        closeBrowser();
-
-        const targetUrl = googleSearchBase + encodeURIComponent(query);
-        const fullProxyUrl = proxyBase + encodeURIComponent(targetUrl);
-
-        fetch(fullProxyUrl)
-          .then(response => {
-            if (!response.ok) throw new Error('ネットワークエラーが発生しました');
-            return response.text();
-          })
-          .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const searchBlocks = doc.querySelectorAll('div.g, div.tF23ub, div.KvNfTe');
-            
-            if (searchBlocks.length === 0) {
-              parseFallbackResults(doc, resultsContainer);
-              return;
-            }
-
-            resultsContainer.innerHTML = ''; 
-
-            searchBlocks.forEach(block => {
-              const anchor = block.querySelector('a');
-              const titleEl = block.querySelector('h3');
-              const snippetEl = block.querySelector('div.VwiC3b, div.yXBZbf, div.BNeawe');
-
-              if (anchor && titleEl) {
-                const title = titleEl.textContent;
-                const url = anchor.href;
-                const cleanUrl = fixGoogleUrl(url); 
-                const snippet = snippetEl ? snippetEl.textContent : '詳細な説明はありません。';
-
-                createResultDOM(resultsContainer, title, cleanUrl, snippet);
-              }
-            });
-
-            if (resultsContainer.children.length === 0) {
-              parseFallbackResults(doc, resultsContainer);
-            }
-          })
-          .catch(error => {
-            console.error(error);
-            resultsContainer.innerHTML = `<div class="status-message" style="color: #ff3939;">エラーが発生しました: ${error.message}</div>`;
-          });
+        background.appendChild(star);
       }
+    </script>
 
-      function parseFallbackResults(doc, container) {
-        container.innerHTML = '';
-        const titles = doc.querySelectorAll('h3');
-        
-        titles.forEach(titleEl => {
-          const anchor = titleEl.closest('a') || titleEl.querySelector('a') || titleEl.parentElement;
-          if (anchor && anchor.href && !anchor.href.includes('google.com/search')) {
-            const title = titleEl.textContent;
-            const cleanUrl = fixGoogleUrl(anchor.href);
-            
-            let snippet = 'クリックしてページ内ブラウザで開きます。';
-            let nextEl = titleEl.parentElement.nextElementSibling;
-            if (nextEl) snippet = nextEl.textContent.substring(0, 150) + '...';
+    <script>
+      (function() {
+        // メニュー外枠
+        var menu = document.createElement('div');
+        var menuContent = document.createElement('div');
+        var closeButton = document.createElement('span');
+        var button = document.createElement('button');
 
-            createResultDOM(container, title, cleanUrl, snippet);
+        menu.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 9999;
+          background-color: rgba(0, 255, 255, 0.2); 
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+          border-radius: 5px;
+          width: 200px;
+          backdrop-filter: blur(4px);
+          border: 1px solid rgba(0, 255, 255, 0.3);
+        `;
+
+        menuContent.style.cssText = 'padding: 10px; position: relative;';
+
+        // 閉じるボタン（×）
+        closeButton.style.cssText = `
+          position: absolute;
+          top: 5px;
+          right: 10px;
+          cursor: pointer;
+          color: #fff;
+          font-size: 18px;
+        `;
+        closeButton.innerHTML = '&times;';
+        closeButton.onclick = function() {
+          menu.remove();
+        };
+
+        // 起動ボタン
+        button.innerHTML = 'Launch ByeBlocker';
+        button.style.cssText = `
+          font-family: Arial;
+          font-size: 14px;
+          color: #fff;
+          background-color: #333;
+          padding: 10px 15px;
+          border: 1px solid #00ffff;
+          border-radius: 5px;
+          margin-top: 15px;
+          width: 100%;
+          cursor: pointer;
+          transition: background 0.2s;
+        `;
+        button.onmouseover = function() { this.style.backgroundColor = '#444'; };
+        button.onmouseout = function() { this.style.backgroundColor = '#333'; };
+
+        // 🚀 ボタンがクリックされた時の処理（ここをご提示のロジックに差し替え・最適化）
+        button.onclick = function() {
+          var link = prompt("Url?");
+          if (!link) return;
+
+          // http等がない場合は自動補完
+          if (!link.startsWith('http://') && !link.startsWith('https://')) {
+            link = 'https://' + link;
+          }
+
+          var proxy = 'https://api.codetabs.com/v1/proxy?quest=';
+          var browserContainer = document.getElementById('browser-container');
+          var previewFrame = document.getElementById('previewFrame');
+          var urlDisplay = document.getElementById('browserUrlDisplay');
+
+          // 元のコードの非同期HTML取得処理
+          fetch(proxy + encodeURIComponent(link))
+            .then((response) => {
+              if (!response.ok) throw new Error('Network error');
+              return response.text();
+            })
+            .then((text) => {
+              // 1. 表示窓（ブラウザ）を出現させる
+              urlDisplay.textContent = `接続先: ${link}`;
+              browserContainer.style.display = 'block';
+
+              // 2. iframeの中に取得したHTMLテキストを直接流し込んで再現する
+              var doc = previewFrame.contentWindow.document;
+              doc.open();
+              doc.write(text);
+              doc.close();
+
+              // 3. 元のコードにある相対パス資産（画像やリンク）のURL書き換えロジックをiframe内で適用
+              setTimeout(function() {
+                var all = doc.getElementsByTagName("*");
+                for (var i = 0, max = all.length; i < max; i++) {
+                  if (all[i].src) {
+                    try {
+                      all[i].src = new URL(all[i].src, link).href;
+                      all[i].src = proxy + encodeURIComponent(all[i].src);
+                    } catch(e) { console.error(e); }
+                  }
+                }
+              }, 500);
+            })
+            .catch(err => {
+              alert("HTMLの取得に失敗しました: " + err.message);
+            });
+        };
+
+        menuContent.appendChild(closeButton);
+        menuContent.appendChild(button);
+        menu.appendChild(menuContent);
+        document.body.appendChild(menu);
+
+        // --- フローティングメニューのドラッグ処理 ---
+        var isDragging = false;
+        var mouseOffset = { x: 0, y: 0 };
+
+        menuContent.addEventListener('mousedown', function(e) {
+          if (e.target === button || e.target === closeButton) return; // ボタン操作時はドラッグしない
+          isDragging = true;
+          mouseOffset.x = e.pageX - menu.offsetLeft;
+          mouseOffset.y = e.pageY - menu.offsetTop;
+        });
+
+        document.addEventListener('mousemove', function(e) {
+          if (isDragging) {
+            menu.style.left = (e.pageX - mouseOffset.x) + 'px';
+            menu.style.top = (e.pageY - mouseOffset.y) + 'px';
+            menu.style.right = 'auto'; // 右固定を解除
           }
         });
 
-        if (container.children.length === 0) {
-          container.innerHTML = '<div class="status-message">検索結果が見つかりませんでした。</div>';
-        }
-      }
+        document.addEventListener('mouseup', function() {
+          isDragging = false;
+        });
+      })();
 
-      function fixGoogleUrl(urlStr) {
-        try {
-          const urlObj = new URL(urlStr);
-          if (urlObj.pathname === '/url' && urlObj.searchParams.has('q')) {
-            return urlObj.searchParams.get('q');
-          }
-          if (urlStr.includes('quest=')) {
-            const parts = urlStr.split('quest=');
-            return decodeURIComponent(parts[1]);
-          }
-          return urlStr;
-        } catch (e) {
-          return urlStr;
-        }
-      }
-
-      // 検索結果のDOM生成（クリック時に内蔵ブラウザを起動するよう変更）
-      function createResultDOM(container, title, url, snippet) {
-        const item = document.createElement('div');
-        item.classList.add('search-result-item');
-
-        // aタグの標準リンク遷移を無効化し、openInInternalBrowser関数を実行
-        item.innerHTML = `
-          <h3 class="result-title">
-            <a onclick="event.preventDefault(); openInInternalBrowser('${url}')">${title}</a>
-          </h3>
-          <div class="result-url">${url}</div>
-          <div class="result-snippet">${snippet}</div>
-        `;
-
-        container.appendChild(item);
-      }
-
-      // 【新機能】ページ内の枠（iframe）でサイトを閲覧する関数
-      function openInInternalBrowser(url) {
-        const browserContainer = document.getElementById('browser-container');
-        const previewFrame = document.getElementById('previewFrame');
-        const urlDisplay = document.getElementById('browserUrlDisplay');
-
-        // アドレスバーにターゲットURLを表示
-        urlDisplay.textContent = `接続先: ${url}`;
-        
-        // 無料プロキシを経由させることで、iframe内のCORS制限を突破してHTMLを表示
-        previewFrame.src = proxyBase + encodeURIComponent(url);
-        
-        // ブラウザコンテナを表示
-        browserContainer.style.display = 'block';
-        
-        // 開いたブラウザの場所までスムーズにスクロール
-        browserContainer.scrollIntoView({ behavior: 'smooth' });
-      }
-
-      // 内蔵ブラウザを閉じる処理
+      // 内蔵Webブラウザを閉じる関数
       function closeBrowser() {
-        const browserContainer = document.getElementById('browser-container');
-        const previewFrame = document.getElementById('previewFrame');
+        var browserContainer = document.getElementById('browser-container');
+        var previewFrame = document.getElementById('previewFrame');
         if (browserContainer && previewFrame) {
-          previewFrame.src = 'about:blank'; // 読み込み中のリソースをクリア
+          previewFrame.src = 'about:blank';
           browserContainer.style.display = 'none';
         }
       }
