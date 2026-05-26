@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCUnblocker (Google CSE)</title>
+    <title>MCUnblocker (Internal Browser Integration)</title>
     <style>
       body {
         margin: 0;
@@ -158,6 +158,7 @@
         text-overflow: ellipsis;
       }
 
+      /* 埋め込み表示用に完全にスクリプト等を許可 */
       #previewFrame {
         width: 100vw;
         height: calc(100vh - 47px);
@@ -186,9 +187,10 @@
           const background = document.getElementById('background');
           for (let i = 0; i < numStars; i++) {
             const star = document.createElement('div');
+            const size = Math.random() * 3;
             star.classList.add('star');
-            star.style.width = `${Math.random() * 3}px`;
-            star.style.height = star.style.width;
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
             star.style.left = `${Math.random() * 100}vw`;
             star.style.top = `${Math.random() * 100}vh`;
             star.style.animationDelay = `${Math.random() * 2}s`;
@@ -222,7 +224,7 @@
         <button class="browser-close-btn" onclick="switchPageToSearch()">× 閉じる</button>
         <div class="browser-url-display" id="browserUrlDisplay">URL: none</div>
       </div>
-      <iframe id="previewFrame" sandbox="allow-scripts allow-forms allow-popups"></iframe>
+      <iframe id="previewFrame" sandbox="allow-scripts allow-forms allow-popups allow-same-origin"></iframe>
     </div>
 
     <div class="bottom-left">Tacogamerman on github</div>
@@ -230,23 +232,63 @@
     <script>
       const proxy = 'https://corsproxy.io/?';
 
+      // 修正された検索実行関数
+// 検索ボタンが押された時の処理
 function executeDirectSearch() {
   var inputVal = document.getElementById('searchInput').value.trim();
   if (!inputVal) return;
 
-  var targetUrl = inputVal;
-  if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
-    if (inputVal.includes(' ') || !inputVal.includes('.')) {
-      targetUrl = 'https://duckduckgo.com/?ia=web&origin=funnel_home_website&t=h_&q=' + encodeURIComponent(targetUrl) + '&chip-select=search';
-    } else {
-      targetUrl = 'https://' + inputVal;
-    }
+  var targetUrl = "";
+
+  // 入力された文字がURLか、検索キーワードかを判定
+  if (inputVal.startsWith('http://') || inputVal.startsWith('https://')) {
+    targetUrl = inputVal; // そのままURLとして使用
+  } else if (inputVal.includes('.') && !inputVal.includes(' ')) {
+    targetUrl = 'https://' + inputVal; // ドメインっぽい場合はhttpsを補完
+  } else {
+    // 💡【ここがポイント】検索ワードの場合、Googleの検索URLを動的に生成する
+    targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
   }
 
-  // 🌟海外の最高大手プロキシサーバー（CroxyProxy）の暗号化ゲートウェイを直撃して別タブで開く
-  var bypassUrl = 'https://duckduckgo.com/?ia=web&origin=funnel_home_website&t=h_&q=' + encodeURIComponent(targetUrl) + '&chip-select=search';
-  window.open(bypassUrl, '_blank');
+  // 使用するプロキシURL（CodeTabsの例）
+  var proxy = 'https://api.codetabs.com/v1/proxy?quest=';
+  
+  // ブラウザ表示領域を「接続中...」にして表示
+  var urlDisplay = document.getElementById('browserUrlDisplay');
+  urlDisplay.textContent = `接続中... (Proxy経由)`;
+  document.getElementById('mainContainer').style.display = 'none';   
+  document.getElementById('browser-view').style.display = 'flex';
+
+  // プロキシ経由でHTMLを取得
+  fetch(proxy + encodeURIComponent(targetUrl))
+    .then(response => {
+      if (!response.ok) throw new Error('ネットワークエラー');
+      return response.text(); // HTMLをテキストとして取得
+    })
+    .then(htmlText => {
+      urlDisplay.textContent = `表示中: ${targetUrl}`;
+
+      // iframeのドキュメントを取得して開く
+      var previewFrame = document.getElementById('previewFrame');
+      var doc = previewFrame.contentWindow.document;
+      
+      doc.open();
+      // 💡 <base href="..."> を入れることで、HTML内の相対パス（画像やCSSなど）が崩れるのを防ぐ
+      doc.write('<base href="' + targetUrl + '">\n' + htmlText);
+      doc.close();
+      
+      // (オプション) ここでさらに、展開されたHTML内のリンク（<a>タグ）を
+      // 再度プロキシ経由で開くように書き換えるループ処理を走らせると完璧です。
+    })
+    .catch(err => {
+      alert("プロキシ経由でのページ取得に失敗しました。制限がかかっているか、プロキシサーバーが混雑しています。");
+      switchPageToSearch(); // 元の検索画面に戻す関数
+    });
 }
+
+        // URLの場合は外部に飛ばさず、下部の内部ブラウザ関数(プロキシHTML展開)に直接渡す
+        launchInternalBrowser(inputVal);
+      }
 
       function launchGoogleCSE(keyword) {
         var mainContainer = document.getElementById('mainContainer');
@@ -258,7 +300,6 @@ function executeDirectSearch() {
         mainContainer.style.display = 'none';   
         browserView.style.display = 'flex';
 
-        // ロボット判定が絶対に起きないGoogleカスタム検索のベースHTMLを動的生成
         var cseHtml = `
           <!DOCTYPE html>
           <html>
@@ -282,15 +323,12 @@ function executeDirectSearch() {
         doc.write(cseHtml);
         doc.close();
 
-        // Googleが読み込まれて結果が表示されるのを待ってから、リンクを乗っ取る
-        // URLに検索ワードを付与してGoogle側に認識させる
         previewFrame.contentWindow.history.replaceState(null, null, "?q=" + encodeURIComponent(keyword));
 
         var checkExist = setInterval(function() {
           var links = doc.getElementsByTagName("a");
           if (links.length > 0) {
             for (var j = 0; j < links.length; j++) {
-              // Googleの検索結果のリンクをクリックしたとき、このブラウザ内でプロキシ経由で開く
               links[j].addEventListener('click', function(e) {
                 var href = this.getAttribute('href') || this.dataset.ctorig;
                 if (!href) return;
@@ -302,7 +340,6 @@ function executeDirectSearch() {
           }
         }, 1000);
 
-        // 閉じた時に監視を止めるため、iframe要素にタイマーIDを退避
         previewFrame.dataset.timerId = checkExist;
       }
 
@@ -312,7 +349,6 @@ function executeDirectSearch() {
         var previewFrame = document.getElementById('previewFrame');
         var urlDisplay = document.getElementById('browserUrlDisplay');
 
-        // CSEの定期チェックタイマーが動いていれば止める
         if (previewFrame.dataset.timerId) {
           clearInterval(parseInt(previewFrame.dataset.timerId));
         }
@@ -331,10 +367,11 @@ function executeDirectSearch() {
 
             var doc = previewFrame.contentWindow.document;
             doc.open();
+            // ベースURLを設定することで、相対パスの画像やCSSも壊れにくくします
             doc.write('<base href="' + link + '">\n' + text);
             doc.close();
 
-            // リンクの再プロキシ化
+            // 読み込み後のリンク書き換え・プロキシ再適用処理
             setTimeout(function() {
               var allElements = doc.getElementsByTagName("*");
               for (var i = 0; i < allElements.length; i++) {
