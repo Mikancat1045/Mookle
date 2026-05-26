@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCUnblocker (Internal Browser Integration)</title>
+    <title>MCUnblocker (Direct HTML Proxy Browser)</title>
     <style>
       body {
         margin: 0;
@@ -158,7 +158,6 @@
         text-overflow: ellipsis;
       }
 
-      /* 埋め込み表示用に完全にスクリプト等を許可 */
       #previewFrame {
         width: 100vw;
         height: calc(100vh - 47px);
@@ -209,12 +208,12 @@
           autocomplete="off" 
           autofocus 
           id="searchInput" 
-          placeholder="URL、またはGoogle検索キーワードを入力..." 
+          placeholder="URL、または検索キーワードを入力してEnter..." 
           type="text"
           onkeypress="if(event.key === 'Enter') executeDirectSearch()"
         >
         <div class="button-group">
-          <button onclick="executeDirectSearch()">Google 検索</button>
+          <button onclick="executeDirectSearch()">Google 検索 (Proxy)</button>
         </div>
       </div>
     </div>
@@ -230,117 +229,28 @@
     <div class="bottom-left">Tacogamerman on github</div>
 
     <script>
-      const proxy = 'https://corsproxy.io/?';
+      // ご指定のCodeTabsプロキシAPI
+      const proxy = 'https://api.codetabs.com/v1/proxy?quest=';
 
-      // 修正された検索実行関数
-// 検索ボタンが押された時の処理
-function executeDirectSearch() {
-  var inputVal = document.getElementById('searchInput').value.trim();
-  if (!inputVal) return;
+      function executeDirectSearch() {
+        var inputVal = document.getElementById('searchInput').value.trim();
+        if (!inputVal) return;
 
-  var targetUrl = "";
+        var targetUrl = inputVal;
 
-  // 入力された文字がURLか、検索キーワードかを判定
-  if (inputVal.startsWith('http://') || inputVal.startsWith('https://')) {
-    targetUrl = inputVal; // そのままURLとして使用
-  } else if (inputVal.includes('.') && !inputVal.includes(' ')) {
-    targetUrl = 'https://' + inputVal; // ドメインっぽい場合はhttpsを補完
-  } else {
-    // 💡【ここがポイント】検索ワードの場合、Googleの検索URLを動的に生成する
-    targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
-  }
-
-  // 使用するプロキシURL（CodeTabsの例）
-  var proxy = 'https://api.codetabs.com/v1/proxy?quest=';
-  
-  // ブラウザ表示領域を「接続中...」にして表示
-  var urlDisplay = document.getElementById('browserUrlDisplay');
-  urlDisplay.textContent = `接続中... (Proxy経由)`;
-  document.getElementById('mainContainer').style.display = 'none';   
-  document.getElementById('browser-view').style.display = 'flex';
-
-  // プロキシ経由でHTMLを取得
-  fetch(proxy + encodeURIComponent(targetUrl))
-    .then(response => {
-      if (!response.ok) throw new Error('ネットワークエラー');
-      return response.text(); // HTMLをテキストとして取得
-    })
-    .then(htmlText => {
-      urlDisplay.textContent = `表示中: ${targetUrl}`;
-
-      // iframeのドキュメントを取得して開く
-      var previewFrame = document.getElementById('previewFrame');
-      var doc = previewFrame.contentWindow.document;
-      
-      doc.open();
-      // 💡 <base href="..."> を入れることで、HTML内の相対パス（画像やCSSなど）が崩れるのを防ぐ
-      doc.write('<base href="' + targetUrl + '">\n' + htmlText);
-      doc.close();
-      
-      // (オプション) ここでさらに、展開されたHTML内のリンク（<a>タグ）を
-      // 再度プロキシ経由で開くように書き換えるループ処理を走らせると完璧です。
-    })
-    .catch(err => {
-      alert("プロキシ経由でのページ取得に失敗しました。制限がかかっているか、プロキシサーバーが混雑しています。");
-      switchPageToSearch(); // 元の検索画面に戻す関数
-    });
-}
-
-        // URLの場合は外部に飛ばさず、下部の内部ブラウザ関数(プロキシHTML展開)に直接渡す
-        launchInternalBrowser(inputVal);
-      }
-
-      function launchGoogleCSE(keyword) {
-        var mainContainer = document.getElementById('mainContainer');
-        var browserView = document.getElementById('browser-view');
-        var previewFrame = document.getElementById('previewFrame');
-        var urlDisplay = document.getElementById('browserUrlDisplay');
-
-        urlDisplay.textContent = `Google公式セキュア検索: ${keyword}`;
-        mainContainer.style.display = 'none';   
-        browserView.style.display = 'flex';
-
-        var cseHtml = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              body { background: #fff; font-family: arial, sans-serif; padding: 20px; }
-              .gsc-control-cse { padding: 0 !important; }
-            </style>
-            <script async src="https://cse.google.com/cse.js?cx=partner-pub-2698861478625136:1951802111"><\/script>
-          </head>
-          <body>
-            <h3>Google カスタム検索</h3>
-            <div class="gcse-searchresults-only" data-queryParameterName="q"></div>
-          </body>
-          </html>
-        `;
-
-        var doc = previewFrame.contentWindow.document;
-        doc.open();
-        doc.write(cseHtml);
-        doc.close();
-
-        previewFrame.contentWindow.history.replaceState(null, null, "?q=" + encodeURIComponent(keyword));
-
-        var checkExist = setInterval(function() {
-          var links = doc.getElementsByTagName("a");
-          if (links.length > 0) {
-            for (var j = 0; j < links.length; j++) {
-              links[j].addEventListener('click', function(e) {
-                var href = this.getAttribute('href') || this.dataset.ctorig;
-                if (!href) return;
-                e.preventDefault();
-                e.stopPropagation();
-                launchInternalBrowser(href);
-              }, true);
-            }
+        // 1. 入力された文字がURLか、検索キーワードかを自動解析
+        if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
+          // 空白がある、またはドット(.)がない場合はGoogle検索URLを自動生成
+          if (inputVal.includes(' ') || !inputVal.includes('.')) {
+            targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
+          } else {
+            // example.com などの場合は https:// を付与
+            targetUrl = 'https://' + inputVal;
           }
-        }, 1000);
+        }
 
-        previewFrame.dataset.timerId = checkExist;
+        // 2. 内部ブラウザでHTMLをフェッチして展開する関数を呼び出す
+        launchInternalBrowser(targetUrl);
       }
 
       function launchInternalBrowser(link) {
@@ -349,36 +259,65 @@ function executeDirectSearch() {
         var previewFrame = document.getElementById('previewFrame');
         var urlDisplay = document.getElementById('browserUrlDisplay');
 
-        if (previewFrame.dataset.timerId) {
-          clearInterval(parseInt(previewFrame.dataset.timerId));
-        }
-
-        urlDisplay.textContent = `接続中...`;
+        // 表示を「接続中」に切り替え
+        urlDisplay.textContent = `接続中... (Proxy経由)`;
         mainContainer.style.display = 'none';   
         browserView.style.display = 'flex';
 
+        // 3. 【核となる処理】プロキシ経由でターゲットURLの生のHTMLデータを取得
         fetch(proxy + encodeURIComponent(link))
           .then((response) => {
             if (!response.ok) throw new Error('Network error');
-            return response.text();
+            return response.text(); // HTMLソースを文字列として受け取る
           })
-          .then((text) => {
-            urlDisplay.textContent = `接続先: ${link}`;
+.then((text) => {
+  urlDisplay.textContent = `接続先: ${link}`;
 
+  var doc = previewFrame.contentWindow.document;
+  doc.open();
+
+  // 1. 元のHTMLから <head> の位置を探す
+  // 2. <head> の直後に <base> タグと、すべてのリクエストをプロキシ経由にするスクリプトを「注入」する
+  var injectScript = `
+    <base href="${link}">
+    <script>
+      // 💡 ページ内で後から動的に読み込まれる要素も監視してプロキシ化するスクリプト
+      const PROXY_URL = '${proxy}';
+      const BASE_URL = '${link}';
+      
+      // 画像やCSSの読み込みを横取りする記述をここに挟むとさらに強固になります
+    <\/script>
+  `;
+
+  // headタグの直後に強制挿入
+  if (text.includes('<head>')) {
+    text = text.replace('<head>', '<head>\n' + injectScript);
+  } else {
+    text = injectScript + text;
+  }
+
+  doc.write(text);
+  doc.close();
+  
+  // 以降のリンク乗っ取り処理...
+
+            // iframe内のdocumentオブジェクトにアクセス
             var doc = previewFrame.contentWindow.document;
             doc.open();
-            // ベースURLを設定することで、相対パスの画像やCSSも壊れにくくします
+            
+            // 💡 <base href="..."> を最初に入れることで、ページ内の画像や相対パスのリンクが壊れなくなります
             doc.write('<base href="' + link + '">\n' + text);
             doc.close();
 
-            // 読み込み後のリンク書き換え・プロキシ再適用処理
+            // 4. 【リンクの再ラップ処理】HTMLが表示された後、ページ内のリンクを再度プロキシ化する
             setTimeout(function() {
+              // ページ内のすべての画像やスクリプトなどのソースを書き換え
               var allElements = doc.getElementsByTagName("*");
               for (var i = 0; i < allElements.length; i++) {
                 if (allElements[i].src) {
                   try {
                     var rawSrc = allElements[i].src;
-                    if (!rawSrc.includes('corsproxy.io')) {
+                    if (!rawSrc.includes('api.codetabs.com')) {
                       var absoluteSrc = new URL(rawSrc, link).href;
                       allElements[i].src = proxy + encodeURIComponent(absoluteSrc);
                     }
@@ -386,35 +325,34 @@ function executeDirectSearch() {
                 }
               }
 
+              // ページ内のすべてのリンク(<a>)をクリックしたとき、再びこの関数で開くようにフックする
               var links = doc.getElementsByTagName("a");
               for (var j = 0; j < links.length; j++) {
-                if (links[j].target) links[j].target = "_self";
+                if (links[j].target) links[j].target = "_self"; // 新規タブで開くのを防止
 
                 links[j].onclick = function(e) {
                   var href = this.getAttribute('href');
+                  // ページ内アンカーやjavascriptリンクは無視
                   if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
 
                   e.preventDefault(); 
                   var absoluteUrl = new URL(href, link).href;
-                  launchInternalBrowser(absoluteUrl);
+                  launchInternalBrowser(absoluteUrl); // 自分の関数を再帰的に呼び出す
                 };
               }
             }, 600); 
           })
           .catch(err => {
-            alert("接続できませんでした。対象サイトの制限かプロキシの限界です。");
+            alert("ウェブページを取得できませんでした。対象サイトが非対応か、プロキシサーバーが混雑しています。");
             switchPageToSearch();
           });
       }
 
+      // 検索画面に戻す関数
       function switchPageToSearch() {
         var mainContainer = document.getElementById('mainContainer');
         var browserView = document.getElementById('browser-view');
         var previewFrame = document.getElementById('previewFrame');
-
-        if (previewFrame.dataset.timerId) {
-          clearInterval(parseInt(previewFrame.dataset.timerId));
-        }
 
         previewFrame.src = 'about:blank'; 
         browserView.style.display = 'none';  
