@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCUnblocker (Direct HTML Proxy Browser)</title>
+    <title>MCUnblocker (Advanced Proxy Browser)</title>
     <style>
       body {
         margin: 0;
@@ -238,19 +238,38 @@
 
         var targetUrl = inputVal;
 
-        // 1. 入力された文字がURLか、検索キーワードかを自動解析
+        // URLか検索ワードかを自動判定
         if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
-          // 空白がある、またはドット(.)がない場合はGoogle検索URLを自動生成
           if (inputVal.includes(' ') || !inputVal.includes('.')) {
             targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
           } else {
-            // example.com などの場合は https:// を付与
             targetUrl = 'https://' + inputVal;
           }
         }
 
-        // 2. 内部ブラウザでHTMLをフェッチして展開する関数を呼び出す
         launchInternalBrowser(targetUrl);
+      }
+
+      // 💡【追加】HTML内のすべてのURL(画像・CSS・リンク)を割り出してプロキシ用に事前書き換えする関数
+      function rewriteHTMLUrls(html, baseUrl) {
+        if (!html) return html;
+
+        // src="..." や href="..." を正規表現で一括キャッチ
+        return html.replace(/(src|href|action)=["'](.*?)["']/gi, function(match, attrib, path) {
+          // すでにプロキシが入っている、またはデータURI、JS命令の場合はスルー
+          if (path.startsWith('http://api.codetabs.com') || path.startsWith('https://api.codetabs.com') || path.startsWith('data:') || path.startsWith('javascript:')) {
+            return match;
+          }
+          
+          try {
+            // 相対パス（/css/style.cssなど）を、接続先URLをベースにした絶対URLに変換
+            var absoluteUrl = new URL(path, baseUrl).href;
+            // プロキシAPIのパラメータとして結合して返す
+            return `${attrib}="${proxy}${encodeURIComponent(absoluteUrl)}"`;
+          } catch(e) {
+            return match;
+          }
+        });
       }
 
       function launchInternalBrowser(link) {
@@ -259,96 +278,61 @@
         var previewFrame = document.getElementById('previewFrame');
         var urlDisplay = document.getElementById('browserUrlDisplay');
 
-        // 表示を「接続中」に切り替え
-        urlDisplay.textContent = `接続中... (Proxy経由)`;
+        urlDisplay.textContent = `接続中... (データの構築中)`;
         mainContainer.style.display = 'none';   
         browserView.style.display = 'flex';
 
-        // 3. 【核となる処理】プロキシ経由でターゲットURLの生のHTMLデータを取得
+        // プロキシ経由で生のHTMLデータを取得
         fetch(proxy + encodeURIComponent(link))
           .then((response) => {
             if (!response.ok) throw new Error('Network error');
-            return response.text(); // HTMLソースを文字列として受け取る
+            return response.text();
           })
-.then((text) => {
-  urlDisplay.textContent = `接続先: ${link}`;
+          .then((text) => {
+            urlDisplay.textContent = `接続先: ${link}`;
 
-  var doc = previewFrame.contentWindow.document;
-  doc.open();
+            // 💡【コア処理】表示する前に、取得したHTML内の画像・CSS等のパスをプロキシURLに全置換！
+            var processedHtml = rewriteHTMLUrls(text, link);
 
-  // 1. 元のHTMLから <head> の位置を探す
-  // 2. <head> の直後に <base> タグと、すべてのリクエストをプロキシ経由にするスクリプトを「注入」する
-  var injectScript = `
-    <base href="${link}">
-    <script>
-      // 💡 ページ内で後から動的に読み込まれる要素も監視してプロキシ化するスクリプト
-      const PROXY_URL = '${proxy}';
-      const BASE_URL = '${link}';
-      
-      // 画像やCSSの読み込みを横取りする記述をここに挟むとさらに強固になります
-    <\/script>
-  `;
-
-  // headタグの直後に強制挿入
-  if (text.includes('<head>')) {
-    text = text.replace('<head>', '<head>\n' + injectScript);
-  } else {
-    text = injectScript + text;
-  }
-
-  doc.write(text);
-  doc.close();
-  
-  // 以降のリンク乗っ取り処理...
-
-            // iframe内のdocumentオブジェクトにアクセス
             var doc = previewFrame.contentWindow.document;
             doc.open();
             
-            // 💡 <base href="..."> を最初に入れることで、ページ内の画像や相対パスのリンクが壊れなくなります
-            doc.write('<base href="' + link + '">\n' + text);
+            // 解析の土台となる <base> タグと置換済みHTMLを流し込む
+            doc.write('<base href="' + link + '">\n' + processedHtml);
             doc.close();
 
-            // 4. 【リンクの再ラップ処理】HTMLが表示された後、ページ内のリンクを再度プロキシ化する
+            // ページ展開後にJS等で後から追加されたリンクや動的要素の対策フック
             setTimeout(function() {
-              // ページ内のすべての画像やスクリプトなどのソースを書き換え
-              var allElements = doc.getElementsByTagName("*");
-              for (var i = 0; i < allElements.length; i++) {
-                if (allElements[i].src) {
-                  try {
-                    var rawSrc = allElements[i].src;
-                    if (!rawSrc.includes('api.codetabs.com')) {
-                      var absoluteSrc = new URL(rawSrc, link).href;
-                      allElements[i].src = proxy + encodeURIComponent(absoluteSrc);
-                    }
-                  } catch(e) {}
-                }
-              }
-
-              // ページ内のすべてのリンク(<a>)をクリックしたとき、再びこの関数で開くようにフックする
               var links = doc.getElementsByTagName("a");
               for (var j = 0; j < links.length; j++) {
-                if (links[j].target) links[j].target = "_self"; // 新規タブで開くのを防止
+                if (links[j].target) links[j].target = "_self";
 
                 links[j].onclick = function(e) {
                   var href = this.getAttribute('href');
-                  // ページ内アンカーやjavascriptリンクは無視
+                  // プロキシURLがすでに頭に付いている場合は引っこ抜いて再割り当て
+                  if (href && href.startsWith(proxy)) {
+                    href = decodeURIComponent(href.replace(proxy, ''));
+                  }
                   if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
 
                   e.preventDefault(); 
-                  var absoluteUrl = new URL(href, link).href;
-                  launchInternalBrowser(absoluteUrl); // 自分の関数を再帰的に呼び出す
+                  try {
+                    var absoluteUrl = new URL(href, link).href;
+                    launchInternalBrowser(absoluteUrl);
+                  } catch(err) {
+                    // 万が一のパースエラー時はそのまま実行
+                    launchInternalBrowser(href);
+                  }
                 };
               }
             }, 600); 
           })
           .catch(err => {
-            alert("ウェブページを取得できませんでした。対象サイトが非対応か、プロキシサーバーが混雑しています。");
+            alert("ウェブページを取得できませんでした。プロキシの制限かサーバーの混雑です。");
             switchPageToSearch();
           });
       }
 
-      // 検索画面に戻す関数
       function switchPageToSearch() {
         var mainContainer = document.getElementById('mainContainer');
         var browserView = document.getElementById('browser-view');
