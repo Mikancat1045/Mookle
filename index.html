@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCUnblocker (Advanced Proxy Browser)</title>
+    <title>MCUnblocker (Direct HTML Proxy Browser)</title>
     <style>
       body {
         margin: 0;
@@ -238,111 +238,89 @@
 
         var targetUrl = inputVal;
 
-        // URLか検索ワードかを自動判定
+        // 1. 入力された文字がURLか、検索キーワードかを自動解析
         if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
+          // 空白がある、またはドット(.)がない場合はGoogle検索URLを自動生成
           if (inputVal.includes(' ') || !inputVal.includes('.')) {
             targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
           } else {
+            // example.com などの場合は https:// を付与
             targetUrl = 'https://' + inputVal;
           }
         }
 
+        // 2. 内部ブラウザでHTMLをフェッチして展開する関数を呼び出す
         launchInternalBrowser(targetUrl);
       }
 
-      // 💡【追加】HTML内のすべてのURL(画像・CSS・リンク)を割り出してプロキシ用に事前書き換えする関数
-      function rewriteHTMLUrls(html, baseUrl) {
-        if (!html) return html;
+      function launchInternalBrowser(link) {
+        var mainContainer = document.getElementById('mainContainer');
+        var browserView = document.getElementById('browser-view');
+        var previewFrame = document.getElementById('previewFrame');
+        var urlDisplay = document.getElementById('browserUrlDisplay');
 
-        // src="..." や href="..." を正規表現で一括キャッチ
-        return html.replace(/(src|href|action)=["'](.*?)["']/gi, function(match, attrib, path) {
-          // すでにプロキシが入っている、またはデータURI、JS命令の場合はスルー
-          if (path.startsWith('http://api.codetabs.com') || path.startsWith('https://api.codetabs.com') || path.startsWith('data:') || path.startsWith('javascript:')) {
-            return match;
-          }
-          
-          try {
-            // 相対パス（/css/style.cssなど）を、接続先URLをベースにした絶対URLに変換
-            var absoluteUrl = new URL(path, baseUrl).href;
-            // プロキシAPIのパラメータとして結合して返す
-            return `${attrib}="${proxy}${encodeURIComponent(absoluteUrl)}"`;
-          } catch(e) {
-            return match;
-          }
-        });
+        // 表示を「接続中」に切り替え
+        urlDisplay.textContent = `接続中... (Proxy経由)`;
+        mainContainer.style.display = 'none';   
+        browserView.style.display = 'flex';
+
+        // 3. 【核となる処理】プロキシ経由でターゲットURLの生のHTMLデータを取得
+        fetch(proxy + encodeURIComponent(link))
+          .then((response) => {
+            if (!response.ok) throw new Error('Network error');
+            return response.text(); // HTMLソースを文字列として受け取る
+          })
+          .then((text) => {
+            urlDisplay.textContent = `接続先: ${link}`;
+
+            // iframe内のdocumentオブジェクトにアクセス
+            var doc = previewFrame.contentWindow.document;
+            doc.open();
+            
+            // 💡 <base href="..."> を最初に入れることで、ページ内の画像や相対パスのリンクが壊れなくなります
+            doc.write('<base href="' + link + '">\n' + text);
+            doc.close();
+
+            // 4. 【リンクの再ラップ処理】HTMLが表示された後、ページ内のリンクを再度プロキシ化する
+            setTimeout(function() {
+              // ページ内のすべての画像やスクリプトなどのソースを書き換え
+              var allElements = doc.getElementsByTagName("*");
+              for (var i = 0; i < allElements.length; i++) {
+                if (allElements[i].src) {
+                  try {
+                    var rawSrc = allElements[i].src;
+                    if (!rawSrc.includes('api.codetabs.com')) {
+                      var absoluteSrc = new URL(rawSrc, link).href;
+                      allElements[i].src = proxy + encodeURIComponent(absoluteSrc);
+                    }
+                  } catch(e) {}
+                }
+              }
+
+              // ページ内のすべてのリンク(<a>)をクリックしたとき、再びこの関数で開くようにフックする
+              var links = doc.getElementsByTagName("a");
+              for (var j = 0; j < links.length; j++) {
+                if (links[j].target) links[j].target = "_self"; // 新規タブで開くのを防止
+
+                links[j].onclick = function(e) {
+                  var href = this.getAttribute('href');
+                  // ページ内アンカーやjavascriptリンクは無視
+                  if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+                  e.preventDefault(); 
+                  var absoluteUrl = new URL(href, link).href;
+                  launchInternalBrowser(absoluteUrl); // 自分の関数を再帰的に呼び出す
+                };
+              }
+            }, 600); 
+          })
+          .catch(err => {
+            alert("ウェブページを取得できませんでした。対象サイトが非対応か、プロキシサーバーが混雑しています。");
+            switchPageToSearch();
+          });
       }
 
-function launchInternalBrowser(link) {
-  var mainContainer = document.getElementById('mainContainer');
-  var browserView = document.getElementById('browser-view');
-  var previewFrame = document.getElementById('previewFrame');
-  var urlDisplay = document.getElementById('browserUrlDisplay');
-
-  urlDisplay.textContent = `接続中...`;
-  mainContainer.style.display = 'none';   
-  browserView.style.display = 'flex';
-
-  // URLのクリーニング（二重プロキシ化を防ぐ）
-  if (link.startsWith(proxy)) {
-    link = decodeURIComponent(link.replace(proxy, ''));
-  }
-
-  fetch(proxy + encodeURIComponent(link))
-    .then((response) => {
-      if (!response.ok) throw new Error('Network error');
-      return response.text();
-    })
-    .then((text) => {
-      urlDisplay.textContent = `接続先: ${link}`;
-
-      // 💡 CSP（セキュリティ制限）のメタタグを無効化する強硬策
-      text = text.replace(/<meta[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
-
-      var processedHtml = rewriteHTMLUrls(text, link);
-
-      var doc = previewFrame.contentWindow.document;
-      doc.open();
-      doc.write('<base href="' + link + '">\n' + processedHtml);
-      doc.close();
-
-      // リンク乗っ取りをより強力に
-      setTimeout(function() {
-        var links = doc.getElementsByTagName("a");
-        for (var j = 0; j < links.length; j++) {
-          // target="_blank"（別タブで開く）を徹底的に阻止
-          links[j].removeAttribute('target');
-          
-          // 古いイベントリスナーを一度クリアして再割り当て
-          links[j].onpointerdown = function(e) { e.stopPropagation(); };
-          links[j].onclick = function(e) {
-            e.preventDefault(); 
-            e.stopPropagation();
-            
-            var href = this.getAttribute('href');
-            if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-            
-            // プロキシURLが付いている場合は剥ぎ取る
-            if (href.startsWith(proxy)) {
-              href = decodeURIComponent(href.replace(proxy, ''));
-            }
-            
-            try {
-              var absoluteUrl = new URL(href, link).href;
-              launchInternalBrowser(absoluteUrl);
-            } catch(err) {
-              launchInternalBrowser(href);
-            }
-          };
-        }
-      }, 800); 
-    })
-    .catch(err => {
-      console.error(err);
-      alert("ウェブページの取得に失敗しました。プロキシの限界か、対象サイトのセキュリティ制限です。");
-      switchPageToSearch();
-    });
-}
-
+      // 検索画面に戻す関数
       function switchPageToSearch() {
         var mainContainer = document.getElementById('mainContainer');
         var browserView = document.getElementById('browser-view');
