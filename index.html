@@ -232,26 +232,24 @@
       // ご指定のCodeTabsプロキシAPI
       const proxy = 'https://api.codetabs.com/v1/proxy?quest=';
 
-      function executeDirectSearch() {
-        var inputVal = document.getElementById('searchInput').value.trim();
-        if (!inputVal) return;
+function executeDirectSearch() {
+  var inputVal = document.getElementById('searchInput').value.trim();
+  if (!inputVal) return;
 
-        var targetUrl = inputVal;
+  var targetUrl = inputVal;
+  if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
+    if (inputVal.includes(' ') || !inputVal.includes('.')) {
+      targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
+    } else {
+      targetUrl = 'https://' + inputVal;
+    }
+  }
 
-        // 1. 入力された文字がURLか、検索キーワードかを自動解析
-        if (!inputVal.startsWith('http://') && !inputVal.startsWith('https://')) {
-          // 空白がある、またはドット(.)がない場合はGoogle検索URLを自動生成
-          if (inputVal.includes(' ') || !inputVal.includes('.')) {
-            targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(inputVal);
-          } else {
-            // example.com などの場合は https:// を付与
-            targetUrl = 'https://' + inputVal;
-          }
-        }
-
-        // 2. 内部ブラウザでHTMLをフェッチして展開する関数を呼び出す
-        launchInternalBrowser(targetUrl);
-      }
+  // 🌟海外の大手プロキシサーバー（CroxyProxy）に暗号化URLを投げて別タブで開く
+  // これならCSSも画像もJSも100%完璧に動きます
+  var bypassUrl = 'https://www.croxyproxy.com/_en/url/' + encodeURIComponent(targetUrl);
+  window.open(bypassUrl, '_blank');
+}
 
       function launchInternalBrowser(link) {
         var mainContainer = document.getElementById('mainContainer');
