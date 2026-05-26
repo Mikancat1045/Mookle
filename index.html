@@ -272,66 +272,76 @@
         });
       }
 
-      function launchInternalBrowser(link) {
-        var mainContainer = document.getElementById('mainContainer');
-        var browserView = document.getElementById('browser-view');
-        var previewFrame = document.getElementById('previewFrame');
-        var urlDisplay = document.getElementById('browserUrlDisplay');
+function launchInternalBrowser(link) {
+  var mainContainer = document.getElementById('mainContainer');
+  var browserView = document.getElementById('browser-view');
+  var previewFrame = document.getElementById('previewFrame');
+  var urlDisplay = document.getElementById('browserUrlDisplay');
 
-        urlDisplay.textContent = `接続中... (データの構築中)`;
-        mainContainer.style.display = 'none';   
-        browserView.style.display = 'flex';
+  urlDisplay.textContent = `接続中...`;
+  mainContainer.style.display = 'none';   
+  browserView.style.display = 'flex';
 
-        // プロキシ経由で生のHTMLデータを取得
-        fetch(proxy + encodeURIComponent(link))
-          .then((response) => {
-            if (!response.ok) throw new Error('Network error');
-            return response.text();
-          })
-          .then((text) => {
-            urlDisplay.textContent = `接続先: ${link}`;
+  // URLのクリーニング（二重プロキシ化を防ぐ）
+  if (link.startsWith(proxy)) {
+    link = decodeURIComponent(link.replace(proxy, ''));
+  }
 
-            // 💡【コア処理】表示する前に、取得したHTML内の画像・CSS等のパスをプロキシURLに全置換！
-            var processedHtml = rewriteHTMLUrls(text, link);
+  fetch(proxy + encodeURIComponent(link))
+    .then((response) => {
+      if (!response.ok) throw new Error('Network error');
+      return response.text();
+    })
+    .then((text) => {
+      urlDisplay.textContent = `接続先: ${link}`;
 
-            var doc = previewFrame.contentWindow.document;
-            doc.open();
+      // 💡 CSP（セキュリティ制限）のメタタグを無効化する強硬策
+      text = text.replace(/<meta[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
+
+      var processedHtml = rewriteHTMLUrls(text, link);
+
+      var doc = previewFrame.contentWindow.document;
+      doc.open();
+      doc.write('<base href="' + link + '">\n' + processedHtml);
+      doc.close();
+
+      // リンク乗っ取りをより強力に
+      setTimeout(function() {
+        var links = doc.getElementsByTagName("a");
+        for (var j = 0; j < links.length; j++) {
+          // target="_blank"（別タブで開く）を徹底的に阻止
+          links[j].removeAttribute('target');
+          
+          // 古いイベントリスナーを一度クリアして再割り当て
+          links[j].onpointerdown = function(e) { e.stopPropagation(); };
+          links[j].onclick = function(e) {
+            e.preventDefault(); 
+            e.stopPropagation();
             
-            // 解析の土台となる <base> タグと置換済みHTMLを流し込む
-            doc.write('<base href="' + link + '">\n' + processedHtml);
-            doc.close();
-
-            // ページ展開後にJS等で後から追加されたリンクや動的要素の対策フック
-            setTimeout(function() {
-              var links = doc.getElementsByTagName("a");
-              for (var j = 0; j < links.length; j++) {
-                if (links[j].target) links[j].target = "_self";
-
-                links[j].onclick = function(e) {
-                  var href = this.getAttribute('href');
-                  // プロキシURLがすでに頭に付いている場合は引っこ抜いて再割り当て
-                  if (href && href.startsWith(proxy)) {
-                    href = decodeURIComponent(href.replace(proxy, ''));
-                  }
-                  if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-
-                  e.preventDefault(); 
-                  try {
-                    var absoluteUrl = new URL(href, link).href;
-                    launchInternalBrowser(absoluteUrl);
-                  } catch(err) {
-                    // 万が一のパースエラー時はそのまま実行
-                    launchInternalBrowser(href);
-                  }
-                };
-              }
-            }, 600); 
-          })
-          .catch(err => {
-            alert("ウェブページを取得できませんでした。プロキシの制限かサーバーの混雑です。");
-            switchPageToSearch();
-          });
-      }
+            var href = this.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+            
+            // プロキシURLが付いている場合は剥ぎ取る
+            if (href.startsWith(proxy)) {
+              href = decodeURIComponent(href.replace(proxy, ''));
+            }
+            
+            try {
+              var absoluteUrl = new URL(href, link).href;
+              launchInternalBrowser(absoluteUrl);
+            } catch(err) {
+              launchInternalBrowser(href);
+            }
+          };
+        }
+      }, 800); 
+    })
+    .catch(err => {
+      console.error(err);
+      alert("ウェブページの取得に失敗しました。プロキシの限界か、対象サイトのセキュリティ制限です。");
+      switchPageToSearch();
+    });
+}
 
       function switchPageToSearch() {
         var mainContainer = document.getElementById('mainContainer');
