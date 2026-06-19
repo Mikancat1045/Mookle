@@ -179,27 +179,8 @@
     </style>
 </head>
 <body>
-
-    <div id="background">
-        <script>
-          const numStars = 300;
-          const background = document.getElementById('background');
-          for (let i = 0; i < numStars; i++) {
-            const star = document.createElement('div');
-            const size = Math.random() * 3;
-            star.classList.add('star');
-            star.style.width = `${size}px`;
-            star.style.height = `${size}px`;
-            star.style.left = `${Math.random() * 100}vw`;
-            star.style.top = `${Math.random() * 100}vh`;
-            star.style.animationDelay = `${Math.random() * 2}s`;
-            star.style.animationDuration = `${2 + Math.random() * 1}s`;
-            background.appendChild(star);
-          }
-        </script>
-    </div>
-
-    <div class="main-container" id="mainContainer">
+    <div class="stars">
+            <div class="main-container" id="mainContainer">
       <div class="container">
         <img src="https://web.archive.org/web/19990504112211im_/http://www.google.com/google.jpg" alt="Google">
       </div>
@@ -227,7 +208,6 @@
     </div>
 
     <div class="bottom-left">Tacogamerman on github</div>
-
     <script>
       // ご指定のCodeTabsプロキシAPI
       const proxy = 'https://api.codetabs.com/v1/proxy?quest=';
@@ -331,5 +311,6 @@ function executeDirectSearch() {
         document.getElementById('searchInput').focus();
       }
     </script>
+        </div>
 </body>
 </html>
