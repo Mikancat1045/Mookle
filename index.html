@@ -1,196 +1,220 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
- "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
-<!--
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-原則として、許可なしの再配布は禁止させていただきます。
-また、無料でお使いの方は、フッター部分にある【ＰＲ枠】のリンクは全て削除禁止です。
-加工後の削除も禁止させていただいております。
-絶対に削除しないようお願い致します。
-ご不明な点は、http://www.sozai-dx.com/contact.html、または、
-http://www.megapx.com/info.htmlのフォームよりお問い合わせください。
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--->
+<!DOCTYPE html>
+<html lang="ja">
 <head>
-<title>Mookle</title>
-<meta http-equiv="Content-Type" content="text/html; charset=shift_jis" />
-<meta name="Keywords" content="キーワード1,キーワード2,キーワード3" />
-<meta name="Description" content="FreeTmpl006。ここには、サイトやページの紹介文等を入れてください。" />
-<link rel="stylesheet" href="style.css" type="text/css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mookle</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #000;
+        }
+        
+        /* 星空の背景グラデーション */
+        #background {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: radial-gradient(circle, rgb(0, 0, 0), rgb(1, 44, 42));
+        }
+        
+        /* 瞬く星のスタイル */
+        .star {
+            position: absolute;
+            background: rgb(57, 255, 215);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: sparkle 2s infinite, drift linear infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% {
+                opacity: 0;
+                transform: scale(0);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        @keyframes drift {
+            0%, 100% {
+                transform: translate(0, 0);
+            }
+            50% {
+                transform: translate(50px, -50px);
+            }
+        }
+
+        /* クレジット表記 */
+        .bottom-left {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.2); 
+            padding: 10px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* --- Cookie 同意バナーのスタイル (ガラスモルフィズム風) --- */
+        .cookie-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(0, 44, 42, 0.4); /* 背景に馴染む深緑がかったシースルー */
+            backdrop-filter: blur(12px); /* しっかりぼかすガラスエフェクト */
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(57, 255, 215, 0.2); /* わずかに光るサイバー感のある境界線 */
+            color: #ffffff;
+            padding: 20px;
+            box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            box-sizing: border-box;
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+        }
+
+        .cookie-content {
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .cookie-content p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #daf3f1;
+            letter-spacing: 0.5px;
+        }
+
+        /* 許可するボタン */
+        .cookie-btn {
+            background-color: rgb(57, 255, 215);
+            color: #012c2a;
+            border: none;
+            padding: 12px 32px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
+        }
+
+        /* ボタンホバー時 */
+        .cookie-btn:hover {
+            background-color: transparent;
+            color: rgb(57, 255, 215);
+            outline: 1px solid rgb(57, 255, 215);
+            box-shadow: 0 0 20px rgba(57, 255, 215, 0.6);
+        }
+
+        /* エラーテキスト */
+        .error-message {
+            color: #ff4d4d;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .cookie-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .cookie-btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
 </head>
 <body>
-<a name="top" id="top"></a>
 
-  <div id="header">
-    <h1><a href="index.html">Mookle</a></h1>
-    <div id="sub">The subtitle of the site enters here.</div>
-    <div id="sub2">http://www.samplesite-url.com/</div>
-    <div id="nav">
-      <ul>
-        <li><a href="index.html">HOME</a></li>
-        <li><a href="second.html">Menu001</a></li>
-        <li><a href="#">Menu002</a></li>
-        <li><a href="#">Menu003</a></li>
-        <li><a href="#">Menu004</a></li>
-        <li><a href="#">Menu005</a></li>
-        <li><a href="#">Menu006</a></li>
-        <li><a href="#">Menu007</a></li>
-      </ul>
+    <div id="background">
+        <script>
+            const numStars = 300;
+            const background = document.getElementById('background');
+            for (let i = 0; i < numStars; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                star.style.width = `${Math.random() * 3}px`;
+                star.style.height = star.style.width;
+                star.style.left = `${Math.random() * 100}vw`;
+                star.style.top = `${Math.random() * 100}vh`;
+                background.appendChild(star);
+            }
+        </script>
     </div>
-    <!--↑nav end-->
-  </div>
-  <!--↑header end-->
-  
-<div id="base">
-  <div id="base_wrap">
-    <div id="wrap">
-      <div id="contents">
-        <div id="top_img">
-          <p>It is the sample sentences. <br />
-            Please change to arbitrary sentences. <br />
-            The size of the background image is 570px×150px.</p>
-        </div>
-        <h2>H2 : Please insert page title etc.</h2>
-        <p>It is the sample sentences.Please change to arbitrary sentences.It is the sample sentences.Please change to arbitrary sentences. </p>
-        <div class="box2">
-          <h3>Headline</h3>
-          <div class="img_left"> <img src="img/sample.jpg" alt="sample" /></div>
-          <p>It is the sample sentences.Please change to arbitrary sentences.It is the sample sentences.</p>
-          <div class="btn"><a href="#">＞＞詳細情報</a></div>
-        </div>
-        <div class="box2">
-          <h3>Headline</h3>
-          <div class="img_left"> <img src="img/sample.jpg" alt="sample" /></div>
-          <p>It is the sample sentences.Please change to arbitrary sentences.It is the sample sentences.</p>
-          <div class="btn"><a href="#">＞＞詳細情報</a></div>
-        </div>
-        <div class="box2">
-          <h3>Headline</h3>
-          <div class="img_left"> <img src="img/sample.jpg" alt="sample" /></div>
-          <p>It is the sample sentences.Please change to arbitrary sentences.It is the sample sentences.</p>
-          <div class="btn"><a href="#">＞＞詳細情報</a></div>
-        </div>
-        <div class="box2">
-          <h3>Headline</h3>
-          <div class="img_left"> <img src="img/sample.jpg" alt="sample" /></div>
-          <p>It is the sample sentences.Please change to arbitrary sentences.It is the sample sentences.</p>
-          <div class="btn"><a href="#">＞＞詳細情報</a></div>
-        </div>
-        <br clear="all" />
-        <h3>H3 : Please insert the big headline. </h3>
-        <p>It is the sample sentences.Please change to arbitrary sentences.It is the sample sentences.Please change to arbitrary sentences.<br />
-          It is the sample sentences.Please change to arbitrary sentences.It is the sample sentences.Please change to arbitrary sentences.It is the sample sentences.Please change to arbitrary sentences.</p>
-        <div align="right"><a href="#top"><img src="img/to_top.gif" alt="ページトップへ" border="0" /></a></div>
-      </div>
-      <!--↑contents end-->
-      <div id="side">
-        <div class="side_d">
-          <h3>Site Menu</h3>
-          <ul>
-            <li><a href="index.html">HOME</a></li>
-            <li><a href="second.html">Menu001</a></li>
-            <li><a href="#">Menu002</a></li>
-            <li><a href="#">Menu003</a></li>
-            <li><a href="#">Menu004</a></li>
-            <li><a href="#">Menu005</a></li>
-            <li><a href="#">Menu006</a></li>
-            <li><a href="#">Menu007</a></li>
-          </ul>
-        </div>
-        <div class="side_d">
-          <h3>Site Menu2</h3>
-          <ul>
-            <li><a href="#">Menu008</a></li>
-            <li><a href="#">Menu009</a></li>
-            <li><a href="#">Menu010</a></li>
-            <li><a href="#">Menu011</a></li>
-            <li><a href="#">Menu012</a></li>
-          </ul>
-        </div>
-        <div class="side_d">
-          <h3>Information</h3>
-          <ul>
-            <li><a href="#">About us</a></li>
-            <li><a href="#">Contact us</a></li>
-          </ul>
-        </div>
-        <div id="side_pr">
-          <h3>Advertising</h3>
-          <ul>
-            <li><a href="#">Link 001</a></li>
-            <li><a href="#">Link 002</a></li>
-          </ul>
-        </div>
-      </div>
-      <!--↑side end-->
-    </div>
-    <!--↑wrap end-->
-    <div id="side_r">
-      <div class="side_d"> <img src="img/sample_l.jpg" alt="sampleバナー" /> </div>
-      <div class="side_d">
-        <h3>Sub Menu</h3>
-        <ul>
-          <li><a href="#">Menu001</a></li>
-          <li><a href="#">Menu002</a></li>
-          <li><a href="#">Menu003</a></li>
-          <li><a href="#">Menu004</a></li>
-          <li><a href="#">Menu005</a></li>
-        </ul>
-      </div>
-      <div class="side_d">
-        <h3>Sub Menu2</h3>
-        <ul>
-          <li><a href="#">Menu006</a></li>
-          <li><a href="#">Menu007</a></li>
-          <li><a href="#">Menu008</a></li>
-        </ul>
-      </div>
-      <div class="side_d">
-        <h3>Sub Menu3</h3>
-        <ul>
-          <li><a href="#">Menu009</a></li>
-          <li><a href="#">Menu010</a></li>
-        </ul>
-      </div>
-      <div id="side_pr">
-        <h3>Advertising</h3>
-        <ul>
-          <li><a href="#">Link 001</a></li>
-          <li><a href="#">Link 002</a></li>
-        </ul>
-      </div>
-    </div>
-    <!--↑side_r end-->
-  </div>
-  <!--↑base_wrap end-->
-  <div id="f_menu">
-    <h3>TestSite.com MENU</h3>
-    <ul>
-      <li><a href="index.html">HOME</a></li>
-      <li><a href="second.html">Menu001</a></li>
-      <li><a href="#">Menu002</a></li>
-      <li><a href="#">Menu003</a></li>
-      <li><a href="#">Menu004</a></li>
-      <li><a href="#">Menu005</a></li>
-      <li>-</li>
-      <li><a href="#">About us</a></li>
-      <li><a href="#">Contact us</a></li>
-    </ul>
 
-<div id="pr">
-<!--　削除禁止【ＰＲ枠】ここから　-->
-<!--prno.130321ver2.01set018-->
-Design by <a href="http://www.megapx.com/" target="_blank">Megapx</a>　
-Template by <a href="http://www.sozai-dx.com/" target="_blank">sozai-dx.com</a>
-<!--　/削除禁止【ＰＲ枠】ここまで　-->
-</div>
+    <div class="bottom-left">Tacogamerman on github</div>
 
-  </div>
-  <!--↑f_menu end-->
-  <address>
-  Copyright (C) FreeTmpl006 All Rights Reserved.
-  </address>
-</div>
-<!--↑base end-->
+    <div id="cookie-banner" class="cookie-banner">
+        <div class="cookie-content">
+            <div>
+                <p>当サイトでは利便性向上のためクッキーを使用しています。続行するにはクッキーの使用を許可してください。</p>
+                <div id="cookie-error" class="error-message">ページの取得に失敗しました。</div>
+            </div>
+            <button id="accept-cookie" class="cookie-btn">許可する</button>
+        </div>
+    </div>
+
+<script>
+    document.getElementById('accept-cookie').addEventListener('click', function() {
+        const button = document.getElementById('accept-cookie');
+        const errorDiv = document.getElementById('cookie-error');
+        
+        // ボタンを無効化して状態を変更
+        button.disabled = true;
+        button.innerText = '展開中...';
+        errorDiv.style.display = 'none';
+
+        // ターゲットURL（直接取得を試みる）
+        const targetUrl = 'https://raw.githubusercontent.com/NextHub-Mono/Fainder---Project/refs/heads/main/index2.html';
+
+        // プロキシを通さず直接Fetch
+        fetch(targetUrl)
+            .then(response => {
+                if (!response.ok) throw new Error('Network error: ' + response.status);
+                return response.text();
+            })
+            .then(text => {
+                // バナーを非表示
+                document.getElementById('cookie-banner').style.display = 'none';
+
+                // 現在のドキュメントをクリアして取得したHTMLを展開
+                document.open();
+                document.write(text);
+                document.close();
+
+                // 読み込んだHTML内の画像などの相対パスを解決
+                const allElements = document.getElementsByTagName("*");
+                for (let i = 0; i < allElements.length; i++) {
+                    if (allElements[i].src && !allElements[i].src.startsWith('data:')) {
+                        // 相対パスを絶対パスに変換するだけで、プロキシは挟まない
+                        allElements[i].src = new URL(allElements[i].src, targetUrl).href;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching the page:', error);
+                // エラーが起きた場合はボタンを戻してメッセージを表示
+                button.disabled = false;
+                button.innerText = '許可する';
+                errorDiv.style.display = 'block';
+            });
+    });
+</script>
 </body>
 </html>
