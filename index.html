@@ -1,220 +1,292 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mookle</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-            background-color: #000;
-        }
-        
-        /* 星空の背景グラデーション */
-        #background {
-            position: absolute;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            background: radial-gradient(circle, rgb(0, 0, 0), rgb(1, 44, 42));
-        }
-        
-        /* 瞬く星のスタイル */
-        .star {
-            position: absolute;
-            background: rgb(57, 255, 215);
-            border-radius: 50%;
-            transform: scale(0);
-            animation: sparkle 2s infinite, drift linear infinite;
-        }
-        
-        @keyframes sparkle {
-            0%, 100% {
-                opacity: 0;
-                transform: scale(0);
-            }
-            50% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-        
-        @keyframes drift {
-            0%, 100% {
-                transform: translate(0, 0);
-            }
-            50% {
-                transform: translate(50px, -50px);
-            }
-        }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0">
+<title>Fainder Portal</title>
 
-        /* クレジット表記 */
-        .bottom-left {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            font-size: 16px;
-            color: rgba(255, 255, 255, 0.2); 
-            padding: 10px;
-            z-index: 10;
-            pointer-events: none;
-        }
+<link href="https://fonts.googleapis.com/earlyaccess/sawarabimincho.css" rel="stylesheet" />
+<link href="https://use.fontawesome.com/releases/v5.9.0/css/all.css" rel="stylesheet">
 
-        /* --- Cookie 同意バナーのスタイル (ガラスモルフィズム風) --- */
-        .cookie-banner {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: rgba(0, 44, 42, 0.4); /* 背景に馴染む深緑がかったシースルー */
-            backdrop-filter: blur(12px); /* しっかりぼかすガラスエフェクト */
-            -webkit-backdrop-filter: blur(12px);
-            border-top: 1px solid rgba(57, 255, 215, 0.2); /* わずかに光るサイバー感のある境界線 */
-            color: #ffffff;
-            padding: 20px;
-            box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.5);
-            z-index: 9999;
-            box-sizing: border-box;
-            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
-        }
+<style>
+/* =========================================================================
+   1. style.css & mailform.css & fancybox.css のコアスタイルを統合
+   ========================================================================= */
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+html, body {
+    height: 100%;
+    color: #111;
+    background-color: #F2F6F7;
+    font-family: "游ゴシック", "Yu Gothic", YuGothic, sans-serif;
+    word-wrap: break-word;
+    line-height: 2.2;
+}
+header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.2);
+}
+header.fixed {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.8);
+    animation: fadeIn 0.3s ease;
+}
+h1 a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 24px;
+}
+nav ul {
+    display: flex;
+    list-style: none;
+    gap: 20px;
+}
+nav ul li a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+}
 
-        .cookie-content {
-            max-width: 960px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
+/* メインビジュアル・コンテンツエリア */
+#main_visual {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    text-align: center;
+    background: #000; /* 背景スライドショー用 */
+}
+.visual_text {
+    z-index: 10;
+}
+.visual_text h2 {
+    font-family: "Sawarabi Mincho", serif;
+    font-size: 3rem;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
 
-        .cookie-content p {
-            margin: 0;
-            font-size: 14px;
-            line-height: 1.6;
-            color: #daf3f1;
-            letter-spacing: 0.5px;
-        }
+#container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 60px 20px;
+}
+.content_box {
+    background: #fff;
+    padding: 40px;
+    margin-bottom: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
 
-        /* 許可するボタン */
-        .cookie-btn {
-            background-color: rgb(57, 255, 215);
-            color: #012c2a;
-            border: none;
-            padding: 12px 32px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.25s ease;
-            box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
-        }
+footer {
+    background: #222;
+    color: #fff;
+    padding: 40px 20px;
+    text-align: center;
+    font-size: 14px;
+}
+.to_top {
+    position: fixed;
+    right: 20px;
+    bottom: 100px; /* Cookieバナーと被らないように調整 */
+    z-index: 999;
+}
+.to_top a {
+    background: #333;
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    text-decoration: none;
+}
 
-        /* ボタンホバー時 */
-        .cookie-btn:hover {
-            background-color: transparent;
-            color: rgb(57, 255, 215);
-            outline: 1px solid rgb(57, 255, 215);
-            box-shadow: 0 0 20px rgba(57, 255, 215, 0.6);
-        }
-
-        /* エラーテキスト */
-        .error-message {
-            color: #ff4d4d;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-
-        @media (max-width: 600px) {
-            .cookie-content {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .cookie-btn {
-                width: 100%;
-                text-align: center;
-            }
-        }
-    </style>
+/* =========================================================================
+   2. Cookie承諾バナー（すべての要素の一番最下部に固定するスタイル）
+   ========================================================================= */
+#cookie-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(20, 20, 20, 0.96);
+    color: #fff;
+    padding: 25px 20px;
+    box-sizing: border-box;
+    z-index: 999999; /* 何よりも上に配置 */
+    font-family: sans-serif;
+    border-top: 2px solid rgba(57, 255, 215, 0.3);
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.7);
+    text-align: center;
+}
+.cookie-text {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #daf3f1;
+}
+.cookie-btn {
+    background: rgb(57, 255, 215);
+    color: #012c2a;
+    border: none;
+    padding: 12px 40px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(57, 255, 215, 0.3);
+    transition: all 0.25s ease;
+}
+.cookie-btn:hover {
+    background: #fff;
+    color: #000;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+}
+.error-message {
+    color: #ff4a4a;
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+}
+</style>
 </head>
 <body>
 
-    <div id="background">
-        <script>
-            const numStars = 300;
-            const background = document.getElementById('background');
-            for (let i = 0; i < numStars; i++) {
-                const star = document.createElement('div');
-                star.classList.add('star');
-                star.style.width = `${Math.random() * 3}px`;
-                star.style.height = star.style.width;
-                star.style.left = `${Math.random() * 100}vw`;
-                star.style.top = `${Math.random() * 100}vh`;
-                background.appendChild(star);
-            }
-        </script>
+<header id="header">
+    <h1><a href="#">NextHub-Mono</a></h1>
+    <nav>
+        <ul>
+            <li><a href="#about">ABOUT</a></li>
+            <li><a href="#concept">CONCEPT</a></li>
+            <li><a href="#works">WORKS</a></li>
+            <li><a href="#contact">CONTACT</a></li>
+        </ul>
+    </nav>
+</header>
+
+<div id="main_visual">
+    <div class="visual_text">
+        <h2>未来を創るデザイン</h2>
+        <p>Fainder Project へようこそ</p>
     </div>
+</div>
 
-    <div class="bottom-left">Tacogamerman on github</div>
+<div id="container">
+    <section id="about" class="content_box">
+        <h3>ABOUT</h3>
+        <p>ここに会社概要やプロジェクトの概要が入ります。統合されたシンプルな1ファイル構成です。</p>
+    </section>
 
-    <div id="cookie-banner" class="cookie-banner">
-        <div class="cookie-content">
-            <div>
-                <p>当サイトでは利便性向上のためクッキーを使用しています。続行するにはクッキーの使用を許可してください。</p>
-                <div id="cookie-error" class="error-message">ページの取得に失敗しました。</div>
-            </div>
-            <button id="accept-cookie" class="cookie-btn">許可する</button>
-        </div>
+    <section id="concept" class="content_box">
+        <h3>CONCEPT</h3>
+        <p>洗練されたUIとモダンなテクノロジーを駆使し、新しいWeb体験を提供します。</p>
+    </section>
+</div>
+
+<footer>
+    <p>Copyright (C) NextHub-Mono. All Rights Reserved.</p>
+</footer>
+
+<div class="to_top"><a href="#"><i class="fas fa-chevron-up"></i></a></div>
+
+
+<div id="cookie-banner">
+    <p class="cookie-text">
+        当サイトでは、快適な利用環境の提供およびコンテンツ機能の展開のためにCookie（クッキー）を使用します。<br>
+        「クッキーを承諾しますか」のボタンを押すと、メインアプリケーション（Fainder）が展開されます。
+    </p>
+    <div>
+        <button id="accept-cookie" class="cookie-btn">クッキーを承諾しますか</button>
     </div>
+    <div id="cookie-error" class="error-message">ページの取得に失敗しました。</div>
+</div>
 
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script>
-    document.getElementById('accept-cookie').addEventListener('click', function() {
-        const button = document.getElementById('accept-cookie');
-        const errorDiv = document.getElementById('cookie-error');
-        
-        // ボタンを無効化して状態を変更
-        button.disabled = true;
-        button.innerText = '展開中...';
-        errorDiv.style.display = 'none';
+/* --- script.js の簡易実装（スクロール連動、ページトップ移動） --- */
+$(window).scroll(function () {
+    if ($(this).scrollTop() > 100) {
+        $('#header').addClass('fixed');
+        $('.to_top').fadeIn();
+    } else {
+        $('#header').removeClass('fixed');
+        $('.to_top').fadeOut();
+    }
+});
 
-        // ターゲットURL（直接取得を試みる）
-        const targetUrl = 'https://raw.githubusercontent.com/NextHub-Mono/Fainder---Project/refs/heads/main/index2.html';
+$('a[href^="#"]').click(function(){
+    var speed = 500;
+    var href= $(this).attr("href");
+    var target = $(href == "#" || href == "" ? 'html' : href);
+    var position = target.offset().top;
+    $("html, body").animate({scrollTop:position}, speed, "swing");
+    return false;
+});
 
-        // プロキシを通さず直接Fetch
-        fetch(targetUrl)
-            .then(response => {
-                if (!response.ok) throw new Error('Network error: ' + response.status);
-                return response.text();
-            })
-            .then(text => {
-                // バナーを非表示
-                document.getElementById('cookie-banner').style.display = 'none';
+/* --- Cookieボタン処理 & index2.html 直接Fetch展開システム --- */
+document.getElementById('accept-cookie').addEventListener('click', function() {
+    const button = document.getElementById('accept-cookie');
+    const errorDiv = document.getElementById('cookie-error');
+    
+    button.disabled = true;
+    button.innerText = '展開中...';
+    errorDiv.style.display = 'none';
 
-                // 現在のドキュメントをクリアして取得したHTMLを展開
-                document.open();
-                document.write(text);
-                document.close();
+    // ターゲットURL
+    const targetUrl = 'https://raw.githubusercontent.com/NextHub-Mono/Fainder---Project/refs/heads/main/index2.html';
 
-                // 読み込んだHTML内の画像などの相対パスを解決
-                const allElements = document.getElementsByTagName("*");
-                for (let i = 0; i < allElements.length; i++) {
-                    if (allElements[i].src && !allElements[i].src.startsWith('data:')) {
-                        // 相対パスを絶対パスに変換するだけで、プロキシは挟まない
-                        allElements[i].src = new URL(allElements[i].src, targetUrl).href;
-                    }
+    // プロキシを挟まず、直接Fetchでソースコードを引っこ抜く
+    fetch(targetUrl)
+        .then(response => {
+            if (!response.ok) throw new Error('Network error: ' + response.status);
+            return response.text();
+        })
+        .then(text => {
+            // バナーを消去
+            document.getElementById('cookie-banner').style.display = 'none';
+
+            // 現在の画面を完全に白紙にして、index2.htmlの中身を流し込む
+            document.open();
+            document.write(text);
+            document.close();
+
+            // 読み込んだコード内の画像やスクリプトなどの相対パスを自動補正
+            const allElements = document.getElementsByTagName("*");
+            for (let i = 0; i < allElements.length; i++) {
+                if (allElements[i].src && !allElements[i].src.startsWith('data:')) {
+                    allElements[i].src = new URL(allElements[i].src, targetUrl).href;
                 }
-            })
-            .catch(error => {
-                console.error('Error fetching the page:', error);
-                // エラーが起きた場合はボタンを戻してメッセージを表示
-                button.disabled = false;
-                button.innerText = '許可する';
-                errorDiv.style.display = 'block';
-            });
-    });
+                if (allElements[i].href && !allElements[i].href.startsWith('javascript:') && !allElements[i].href.startsWith('#')) {
+                    allElements[i].href = new URL(allElements[i].href, targetUrl).href;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching the page:', error);
+            button.disabled = false;
+            button.innerText = 'クッキーを承諾しますか';
+            errorDiv.style.display = 'block';
+        });
+});
 </script>
 </body>
 </html>
